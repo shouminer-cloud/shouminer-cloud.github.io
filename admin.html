@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>חדר הבקרה · שירה הומינר</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alef:wght@400;700&family=Frank+Ruhl+Libre:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#EBE7DE;--panel:#F6F3EC;--panel2:#F0ECE3;--field:#FBF9F4;--ink:#2B2822;--soft:#6E685B;--faint:#9C9585;--edge:#DED8CA;--edge2:#E8E3D7;--sage:#74856A;--sage-ink:#59684F;--sage-soft:#E4E8DC;--good:#6E8B63;--warn:#B08A4A;--danger:#b0503e;--sans:'Heebo',system-ui,sans-serif;--mono:'Fragment Mono',ui-monospace,monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.6;-webkit-text-size-adjust:100%}
+.mono{font-family:var(--mono)}a{color:var(--sage-ink);cursor:pointer}
+input,textarea,select,button{font-family:inherit;color:inherit}
+#login{position:fixed;inset:0;display:grid;place-items:center;background:var(--bg);z-index:100;padding:20px}
+#login .box{background:var(--panel);border:1px solid var(--edge);border-radius:16px;padding:34px 30px;width:min(360px,92vw);text-align:center}
+#login h1{font-size:22px;margin:0 0 2px}#login .hi{color:var(--soft);font-size:13px;margin-bottom:22px}
+#login input{width:100%;background:var(--field);border:1px solid var(--edge);border-radius:9px;padding:12px 14px;font-size:15px;text-align:center;margin-bottom:12px}
+#login input:focus{outline:none;border-color:var(--sage);box-shadow:0 0 0 3px var(--sage-soft)}
+#login button{width:100%;background:var(--sage);color:#fff;border:none;border-radius:9px;padding:12px;font-size:15px;font-weight:700;cursor:pointer}
+#login button:hover{background:var(--sage-ink)}#login .err{color:var(--danger);font-size:12.5px;min-height:18px;margin-top:6px}
+#app{display:none;grid-template-columns:222px 1fr;min-height:100vh}
+.side{background:var(--panel);border-left:1px solid var(--edge);padding:22px 14px;display:flex;flex-direction:column;gap:2px;position:sticky;top:0;height:100vh}
+.brand{font-size:16px;font-weight:700;padding:0 8px}.brand small{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-top:5px}
+.side nav{margin-top:20px;display:flex;flex-direction:column;gap:2px}
+.side nav button{display:flex;align-items:center;gap:10px;background:none;border:none;text-align:right;width:100%;padding:10px 12px;border-radius:10px;color:var(--soft);font-size:14px;font-weight:500;cursor:pointer}
+.side nav button:hover{background:var(--panel2);color:var(--ink)}.side nav button.on{background:var(--sage-soft);color:var(--sage-ink);font-weight:700}
+.side .acct{margin-top:auto;border-top:1px solid var(--edge);padding:14px 8px 0;font-size:11.5px;color:var(--faint);line-height:1.7}
+.side .acct .dom{font-family:var(--mono);color:var(--sage-ink);font-size:11px;word-break:break-all}
+.main{padding:26px clamp(16px,3vw,38px) 90px;max-width:940px}
+.h{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:20px;flex-wrap:wrap}
+.h h2{font-size:23px;font-weight:700;margin:0}.h .sub{font-family:var(--mono);font-size:11px;color:var(--faint)}
+.tab{display:none}.tab.on{display:block;animation:fade .25s ease}@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.card{background:var(--panel);border:1px solid var(--edge);border-radius:14px;padding:18px;margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.f{margin-bottom:13px}.f:last-child{margin-bottom:0}
+.f label{display:block;font-size:12px;color:var(--soft);font-weight:700;margin-bottom:5px}
+.f input,.f textarea,.f select{width:100%;background:var(--field);border:1px solid var(--edge);border-radius:9px;padding:10px 12px;font-size:14px}
+.f input:focus,.f textarea:focus,.f select:focus{outline:none;border-color:var(--sage);box-shadow:0 0 0 3px var(--sage-soft)}
+.f textarea{resize:vertical;min-height:80px;line-height:1.7}.f .lyr{min-height:150px;font-size:15px;line-height:1.95}
+.hint{font-size:11.5px;color:var(--faint);margin-top:5px}
+.saved{font-size:12px;color:var(--good)}.saved.saving{color:var(--faint)}
+.btn{display:inline-flex;align-items:center;gap:7px;background:var(--sage);color:#fff;border:none;border-radius:9px;padding:9px 17px;font-size:13px;font-weight:700;cursor:pointer}
+.btn:hover{background:var(--sage-ink)}.btn.ghost{background:none;border:1px solid var(--edge);color:var(--soft)}.btn.ghost:hover{border-color:var(--sage);color:var(--sage-ink)}.btn.sm{padding:6px 12px;font-size:12px}.btn.danger{color:var(--danger);border-color:#e0c4bc}.btn.danger:hover{background:#f2e3df;color:var(--danger);border-color:#e0c4bc}
+.home-hero{background:var(--panel);border:1px solid var(--edge);border-radius:16px;padding:22px;margin-bottom:14px}
+.home-hero .k{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.home-hero h3{font-size:26px;margin:6px 0 4px;font-weight:700}.home-hero .meta{color:var(--soft);font-size:13.5px}
+.tcards{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+.tcard{background:var(--panel);border:1px solid var(--edge);border-radius:14px;padding:16px;cursor:pointer;transition:.16s}
+.tcard:hover{border-color:var(--sage)}
+.tcard .st{font-family:var(--mono);font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint)}
+.tcard h4{font-size:18px;margin:5px 0 8px;font-weight:700}.tcard .chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip2{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:var(--panel2);color:var(--soft)}
+.chip2.warn{background:#f2e7d3;color:var(--warn)}.chip2.ok{background:var(--sage-soft);color:var(--sage-ink)}
+.albumbar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.albumbar .k{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.albumbar .nm{font-size:17px;font-weight:700;margin-top:3px}
+.credit-row{display:grid;grid-template-columns:135px 1fr auto;gap:8px;margin-bottom:7px;align-items:center}
+.credit-row .x{color:var(--faint);cursor:pointer;padding:4px 7px;border:none;background:none;font-size:15px}
+.chk{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--sage-ink);cursor:pointer}.chk input{width:17px;height:17px;accent-color:var(--sage)}
+.iconbtn{color:var(--faint);cursor:pointer;padding:4px 7px;border:none;background:none;font-size:15px}
+.toolbar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.search{flex:1;min-width:150px;background:var(--field);border:1px solid var(--edge);border-radius:9px;padding:9px 13px;font-size:13.5px}
+.search:focus{outline:none;border-color:var(--sage);box-shadow:0 0 0 3px var(--sage-soft)}
+.chip{background:var(--panel);border:1px solid var(--edge);color:var(--soft);border-radius:20px;padding:7px 14px;font-size:12.5px;cursor:pointer}
+.chip.on{border-color:var(--sage);color:var(--sage-ink);background:var(--sage-soft)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{text-align:right;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);padding:0 9px 9px;border-bottom:1px solid var(--edge)}
+tbody td{padding:7px 9px;border-bottom:1px solid var(--edge2);vertical-align:middle}
+tbody tr:hover{background:var(--panel)}
+td input,td select{width:100%;background:transparent;border:1px solid transparent;border-radius:6px;padding:6px 7px;font-size:13px}
+td input:focus,td select:focus{outline:none;background:var(--field);border-color:var(--sage)}
+.pill{font-family:var(--mono);font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;border:1px solid var(--edge);white-space:nowrap;cursor:pointer}
+.pill.v{color:var(--good);border-color:#bcd0b5}.pill.s{color:var(--warn);border-color:#e6d3ad}.pill.n{color:var(--faint)}
+.soon{background:var(--panel);border:1px solid var(--edge);border-radius:16px;padding:26px}
+.step{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--edge2)}.step:last-child{border:none}
+.step .n{width:26px;height:26px;border-radius:50%;background:var(--sage-soft);color:var(--sage-ink);display:grid;place-items:center;font-weight:700;font-size:12px;flex:none}
+.step .t{font-weight:700}.step .d{color:var(--soft);font-size:12.5px}
+.skel{background:var(--panel);border:1px solid var(--edge);border-radius:14px;height:110px;margin-bottom:14px;animation:pulse 1.3s ease-in-out infinite}@keyframes pulse{50%{opacity:.55}}
+.empty{color:var(--faint);text-align:center;padding:36px 20px}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:var(--sage-ink);color:#fff;padding:11px 22px;border-radius:24px;font-size:13.5px;font-weight:700;opacity:0;transition:.3s;z-index:300;pointer-events:none}#toast.show{opacity:1}#toast.bad{background:var(--danger)}
+#modal{position:fixed;inset:0;background:rgba(30,26,20,.4);display:none;place-items:center;z-index:250;padding:20px}#modal.show{display:grid}
+#modal .m{background:var(--panel);border:1px solid var(--edge);border-radius:16px;padding:24px;width:min(340px,92vw);text-align:center}#modal p{font-size:15px;margin:0 0 18px}#modal .row{display:flex;gap:10px;justify-content:center}
+#sheet{position:fixed;inset:0;background:rgba(30,26,20,.42);display:none;z-index:200;overflow:auto;padding:24px 16px}#sheet.show{display:block;animation:fade .2s ease}
+#sheet .sh{background:var(--bg);border:1px solid var(--edge);border-radius:16px;max-width:600px;margin:10px auto 40px;box-shadow:0 30px 80px -30px rgba(40,35,25,.5)}
+.sheet-head{position:sticky;top:0;background:var(--bg);border-bottom:1px solid var(--edge);padding:15px 20px;display:flex;align-items:center;justify-content:space-between;border-radius:16px 16px 0 0;z-index:2}
+.sheet-head h3{margin:0;font-size:18px;font-weight:700}.sheet-head .x{background:none;border:none;font-size:19px;color:var(--soft);cursor:pointer;line-height:1}
+.sheet-body{padding:18px 20px 24px}
+@media(max-width:820px){
+  #app{grid-template-columns:1fr}
+  .side{position:sticky;top:0;height:auto;flex-direction:row;align-items:center;padding:10px 12px;z-index:20;flex-wrap:wrap;gap:6px}
+  .brand{display:none}.side nav{flex-direction:row;flex-wrap:wrap;margin-top:0;gap:4px;flex:1}.side nav button{padding:8px 12px}
+  .side .acct{margin:0;border:none;padding:0}.side .acct .dom{display:none}
+  .tcards,.grid2{grid-template-columns:1fr}.main{padding-bottom:130px}
+}
+/* ── aligned to landing page · light · sharp edges · centered ── */
+:root{
+  --bg:#E6E1D6;--panel:#EDE8DE;--panel2:#E3DDD0;--field:#F4F0E7;--ink:#201D1A;--soft:#6A6256;--faint:#948B7C;
+  --edge:#CBC3B4;--edge2:#D8D1C2;--sage:#7C7392;--sage-ink:#5C5470;--sage-soft:#E7E2EC;--good:#6E8B63;--warn:#9A7B3E;
+  --sans:'Alef',system-ui,sans-serif;--mono:'Alef',system-ui,sans-serif;--serif:'Frank Ruhl Libre',Georgia,serif;
+}
+body{font-family:var(--sans)}
+#app{max-width:1180px;margin:0 auto;border-inline:1px solid var(--edge);min-height:100vh}
+.brand,.h h2,.home-hero h3,.albumbar .nm,.tcard h4,.sheet-head h3,#login h1{font-family:var(--serif);font-weight:500;letter-spacing:-.01em}
+.mono{font-family:var(--sans)}
+#login .box,#login input,#login button,.card,.btn,.f input,.f textarea,.f select,.tcard,.home-hero,.chip,.chip2,.pill,.search,.side nav button,.sheet-head,#sheet .sh,#modal .m,#modal .btn,.skel,td input,td select,.credit-row input,.mediarow,#toast,.albumbar,textarea{border-radius:0 !important}
+@media(min-width:821px){.main{margin:0 auto}}
+/* ── typography comfort + motion polish ── */
+body{font-size:15px;line-height:1.65}
+.h h2{font-size:29px;letter-spacing:-.02em;margin-bottom:2px}
+.home-hero{padding:26px}.home-hero h3{font-size:31px;line-height:1.05}
+.tcard h4{font-size:20px}.sheet-head h3{font-size:21px}#login h1{font-size:27px}.albumbar .nm{font-size:19px}
+.f label{font-size:12.5px;margin-bottom:6px}
+.f input,.f textarea,.f select,td input,td select{font-size:14.5px}
+.f input,.f textarea,.f select{padding:11px 13px}
+.card{padding:20px}.btn{padding:10px 19px;font-size:13.5px}
+.side nav button{font-size:15px;transition:background .2s ease,color .2s ease}
+.tcard{transition:border-color .18s ease,transform .2s ease,box-shadow .2s ease}
+.tcard:hover{transform:translateY(-3px);box-shadow:0 16px 34px -20px rgba(60,50,40,.45)}
+.btn{transition:background .2s ease,transform .08s ease}.btn:active{transform:scale(.97)}
+.pill,.chip{transition:.18s ease}
+#sheet .sh{animation:sheetIn .42s cubic-bezier(.2,.85,.25,1)}
+@keyframes sheetIn{from{opacity:0;transform:translateY(28px) scale(.99)}to{opacity:1;transform:none}}
+.credit-row,.mediarow{animation:rowIn .3s ease}@keyframes rowIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.home-hero,.card,.tcard{animation:cardIn .5s cubic-bezier(.2,.7,.2,1) both}
+@keyframes cardIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none !important;transition:none !important}}
+</style>
+</head>
+<body>
+
+<div id="login"><div class="box">
+  <h1>חדר הבקרה</h1><div class="hi">שלום שירה 🤍</div>
+  <input id="pw" type="password" placeholder="סיסמה" autocomplete="current-password">
+  <button id="loginBtn">כניסה</button><div class="err" id="loginErr"></div>
+</div></div>
+
+<div id="app">
+  <aside class="side">
+    <div class="brand">שירה הומינר<small>Control Room</small></div>
+    <nav>
+      <button class="on" data-tab="works">המוזיקה</button>
+      <button data-tab="contacts">תחנות הרדיו</button>
+      <button data-tab="send">שליחה</button>
+    </nav>
+    <div class="acct">שולח מ:<br><span class="dom">shira@music.shirahouminer.com</span><br><br><a id="logout">יציאה</a></div>
+  </aside>
+  <main class="main">
+    <section class="tab on" id="tab-works"><div class="h"><h2>המוזיקה</h2><span class="sub" id="worksSub"></span></div><div id="worksBody"></div></section>
+    <section class="tab" id="tab-contacts"><div class="h"><h2>תחנות הרדיו</h2><span class="sub" id="contactsSub"></span></div><div id="contactsBody"></div></section>
+    <section class="tab" id="tab-send"><div class="h"><h2>שליחה</h2><span class="sub" id="sendSub"></span></div><div id="sendBody"></div></section>
+  </main>
+</div>
+
+<div id="toast"></div>
+<div id="modal"><div class="m"><p id="modalText"></p><div class="row"><button class="btn ghost" onclick="closeModal(false)">ביטול</button><button class="btn" id="modalOk">אישור</button></div></div></div>
+<div id="sheet"><div class="sh" id="sheetInner"></div></div>
+
+<script>
+const FN="https://krttlnkystsykrvjfzwk.supabase.co/functions/v1/admin";
+const KEY="sb_publishable_xWhjAb40w1nhj4O34UA0tQ_Tl8HLkD1";
+let PW=sessionStorage.getItem("pw")||"", DATA=null, curTrack=null, cFilter={q:"",cat:"all"};
+
+async function api(action,extra={}){
+  const r=await fetch(FN,{method:"POST",headers:{"Authorization":"Bearer "+KEY,"apikey":KEY,"Content-Type":"application/json"},body:JSON.stringify({password:PW,action,...extra})});
+  const j=await r.json().catch(()=>({error:"bad response"}));if(!r.ok) throw new Error(j.error||("HTTP "+r.status));return j;
+}
+function toast(m,bad){const t=document.getElementById("toast");t.textContent=m;t.className="show"+(bad?" bad":"");setTimeout(()=>t.className="",2200);}
+function esc(s){return (s==null?"":String(s)).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function v(id){const el=document.getElementById(id);return el?el.value:"";}
+let modalCb=null;
+function confirmBox(text,cb){document.getElementById("modalText").textContent=text;modalCb=cb;document.getElementById("modal").classList.add("show");}
+function closeModal(ok){document.getElementById("modal").classList.remove("show");if(modalCb){const cb=modalCb;modalCb=null;cb(ok);}}
+document.getElementById("modalOk").onclick=()=>closeModal(true);
+function openSheet(title,html){document.getElementById("sheetInner").innerHTML=`<div class="sheet-head"><h3>${title}</h3><button class="x" onclick="closeSheet()">✕</button></div><div class="sheet-body">${html}</div>`;document.getElementById("sheet").classList.add("show");}
+function closeSheet(){document.getElementById("sheet").classList.remove("show");}
+document.getElementById("sheet").addEventListener("mousedown",e=>{if(e.target.id==="sheet")closeSheet();});
+function saving(id){const e=document.getElementById(id);if(e){e.textContent="שומר…";e.className="saved saving";}}
+function saved(id){const e=document.getElementById(id);if(e){e.textContent="נשמר ✓";e.className="saved";}}
+
+async function doLogin(){const err=document.getElementById("loginErr");err.textContent="";PW=document.getElementById("pw").value;
+  try{await api("login");sessionStorage.setItem("pw",PW);await boot();}catch(e){err.textContent=e.message==="unauthorized"?"סיסמה שגויה":("שגיאה: "+e.message);}}
+document.getElementById("loginBtn").onclick=doLogin;
+document.getElementById("pw").addEventListener("keydown",e=>{if(e.key==="Enter")doLogin();});
+document.getElementById("logout").onclick=()=>{sessionStorage.removeItem("pw");location.reload();};
+
+async function boot(){
+  document.getElementById("login").style.display="none";document.getElementById("app").style.display="grid";
+  document.getElementById("worksBody").innerHTML='<div class="skel"></div><div class="skel"></div>';
+  DATA=await api("get");renderWorks();renderContacts();renderSend();loadTemplates();
+}
+document.querySelectorAll(".side nav button").forEach(b=>b.onclick=()=>{
+  document.querySelectorAll(".side nav button").forEach(x=>x.classList.remove("on"));b.classList.add("on");
+  document.querySelectorAll(".tab").forEach(s=>s.classList.remove("on"));document.getElementById("tab-"+b.dataset.tab).classList.add("on");window.scrollTo({top:0,behavior:"smooth"});
+});
+function goTab(t){document.querySelector('.side nav button[data-tab="'+t+'"]').click();}
+
+/* HOME */
+function renderHome(){
+  if(!document.getElementById("homeBody"))return;
+  const up=DATA.tracks.find(t=>t.status==="upcoming")||DATA.tracks[0]||{};
+  document.getElementById("homeSub").textContent=DATA.tracks.length+" שירים · "+DATA.contacts.length+" תחנות";
+  document.getElementById("homeBody").innerHTML=`<div class="home-hero"><div class="k">השיר הבא</div><h3>${esc(up.title||"—")}</h3>
+    <div class="meta">${up.status==="upcoming"?("יוצא "+esc(up.release_date||"")):"יצא"} · טרם נשלח לרדיו</div></div>
+    <div class="tcards">`+DATA.tracks.map(t=>`<div class="tcard" onclick="goTab('works');openTrack('${t.id}')">
+      <div class="st">${t.status==="released"?"יצא":t.status==="upcoming"?"בקרוב":"טיוטה"}</div><h4>${esc(t.title)}</h4>
+      <div class="chips"><span class="chip2 ${t.published?"ok":"warn"}">${t.published?"מוצג":"מוסתר"}</span>
+      <span class="chip2">${[t.lyrics&&"מילים",(t.track_credits||[]).length&&"קרדיטים",t.communique&&"קומוניקט"].filter(Boolean).join(" · ")||"אין תוכן"}</span></div></div>`).join("")+`</div>`;
+}
+
+/* WORKS — list + popups */
+let saveTimer={};
+function autosave(fn,key){clearTimeout(saveTimer[key]);saveTimer[key]=setTimeout(fn,700);}
+function renderWorks(){
+  const al=DATA.album||{};
+  document.getElementById("worksSub").textContent=DATA.tracks.length+" שירים";
+  document.getElementById("worksBody").innerHTML=`
+    <div class="card albumbar"><div><div class="k">האלבום</div><div class="nm">${esc(al.title||"(ללא שם עדיין)")}</div></div><button class="btn ghost sm" onclick="openAlbum()">עריכת אלבום</button></div>
+    <div class="toolbar"><div style="font-weight:700;font-size:15px">השירים</div><button class="btn sm" style="margin-inline-start:auto" onclick="openAddTrack()">+ הוסף שיר</button></div>
+    ${DATA.tracks.length?`<div class="tcards">`+DATA.tracks.map(t=>`<div class="tcard" onclick="openTrack('${t.id}')">
+      <div class="st">${t.status==="released"?"יצא":t.status==="upcoming"?"בקרוב":"טיוטה"}</div><h4>${esc(t.title)}</h4>
+      <div class="chips"><span class="chip2 ${t.published?"ok":"warn"}">${t.published?"מוצג":"מוסתר"}</span>
+      <span class="chip2">${[t.lyrics&&"מילים",(t.track_credits||[]).length&&"קרדיטים",t.communique&&"קומוניקט"].filter(Boolean).join(" · ")||"אין תוכן"}</span></div></div>`).join("")+`</div>`:`<div class="empty">עדיין אין שירים. לחצי "הוסף שיר" כדי להתחיל.</div>`}`;
+}
+function openAlbum(){
+  const al=DATA.album||{},ev=DATA.events[0]||{};
+  openSheet("עריכת אלבום",`
+    <div class="grid2"><div class="f"><label>שם האלבום</label><input id="al_title" value="${esc(al.title)}"></div><div class="f"><label>ז'אנר</label><input id="al_genre" value="${esc(al.genre)}" placeholder="אינדי / אלטרנטיב"></div></div>
+    <div class="f"><label>ביו · אודות</label><textarea id="al_bio" placeholder="הביוגרפיה שלך, בקול שלך. מופיעה באתר.">${esc(al.bio)}</textarea></div>
+    <div class="f"><label>קומוניקט לאלבום</label><textarea id="al_comm" placeholder="הודעה קצרה על האלבום כולו.">${esc(al.communique)}</textarea></div>
+    <div style="border-top:1px solid var(--edge);margin:16px 0 14px"></div>
+    <div class="mono" style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-ink);margin-bottom:10px">מסיבת השמעה</div>
+    <div class="grid2"><div class="f"><label>שם</label><input id="ev_title" value="${esc(ev.title)}"></div><div class="f"><label>תאריך</label><input type="date" id="ev_date" value="${esc(ev.event_date)}"></div>
+    <div class="f"><label>מקום</label><input id="ev_venue" value="${esc(ev.venue)}"></div><div class="f"><label>עיר</label><input id="ev_city" value="${esc(ev.city)}"></div></div>
+    <div style="border-top:1px solid var(--edge);margin:16px 0 12px"></div>
+    <div class="mono" style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-ink);margin-bottom:10px">תמונות יח״צ (להורדה מדף השיר)</div>
+    <div id="photosGrid" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px"></div>
+    <label class="btn ghost sm" style="cursor:pointer">+ העלאת תמונה<input type="file" accept="image/*" style="display:none" onchange="uploadPhoto(this.files[0])"></label>
+    <div class="hint">תמונות ברזולוציה גבוהה שהעורך/עיתונאי יכול להוריד. מומלץ JPG.</div>
+    <div style="margin-top:12px"><span class="saved" id="sv-al"></span></div>`);
+  renderPhotos();
+  const alId=al.id,evId=ev.id;
+  ["al_title","al_genre","al_bio","al_comm"].forEach(id=>document.getElementById(id).addEventListener("input",()=>autosave(async()=>{saving("sv-al");try{const d={title:v("al_title"),genre:v("al_genre"),bio:v("al_bio"),communique:v("al_comm")};await api("saveAlbum",{id:alId,data:d});Object.assign(DATA.album,d);saved("sv-al");document.querySelector("#worksBody .albumbar .nm").textContent=d.title||"(ללא שם עדיין)";}catch(e){toast("שגיאה בשמירה",1);}},"al")));
+  ["ev_title","ev_date","ev_venue","ev_city"].forEach(id=>document.getElementById(id).addEventListener("input",()=>autosave(async()=>{saving("sv-al");try{await api("saveEvent",{id:evId||null,data:{title:v("ev_title"),event_date:v("ev_date")||null,venue:v("ev_venue"),city:v("ev_city")}});saved("sv-al");if(!evId)DATA=await api("get");}catch(e){toast("שגיאה בשמירה",1);}},"ev")));
+}
+function openAddTrack(){
+  openSheet("שיר חדש",`<div class="f"><label>שם השיר</label><input id="nt_title" placeholder="שם השיר"></div>
+    <div class="grid2"><div class="f"><label>סטטוס</label><select id="nt_status"><option value="upcoming">יוצא בקרוב</option><option value="released">יצא</option><option value="draft">טיוטה</option></select></div>
+    <div class="f"><label>תאריך יציאה</label><input type="date" id="nt_date"></div></div>
+    <button class="btn" style="margin-top:6px" onclick="doAddTrack()">הוספת השיר</button>`);
+  setTimeout(()=>document.getElementById("nt_title").focus(),50);
+}
+async function doAddTrack(){const title=v("nt_title").trim();if(!title){toast("צריך שם לשיר",1);return;}
+  try{const r=await api("addTrack",{data:{title,status:v("nt_status"),release_date:v("nt_date")||null}});DATA.tracks.push(r.track);renderWorks();renderHome();toast("השיר נוסף ✓");openTrack(r.track.id);}catch(e){toast("שגיאה: "+e.message,1);}}
+function openTrack(id){
+  curTrack=id;const t=DATA.tracks.find(x=>x.id===id);if(!t)return;
+  const credits=(t.track_credits||[]).slice().sort((a,b)=>a.sort_order-b.sort_order);
+  const crHtml=(credits.length?credits:[{role:"",name:""}]).map(creditRow).join("");
+  openSheet(esc(t.title||"שיר"),`
+    <div class="f"><label>שם השיר</label><input id="t_title" value="${esc(t.title)}"></div>
+    <div class="grid2"><div class="f"><label>סטטוס</label><select id="t_status"><option value="upcoming" ${t.status==="upcoming"?"selected":""}>יוצא בקרוב</option><option value="released" ${t.status==="released"?"selected":""}>יצא</option><option value="draft" ${t.status==="draft"?"selected":""}>טיוטה</option></select></div>
+    <div class="f"><label>תאריך יציאה</label><input type="date" id="t_date" value="${esc(t.release_date)}"></div></div>
+    <div class="f"><label class="chk"><input type="checkbox" id="t_pub" ${t.published?"checked":""}> מוצג בעמוד הפומבי</label></div>
+    <div class="f"><label>הושמע ברדיו · יומן פרטי <span class="hint" style="display:inline">— לתיעוד שלך, לא מופיע באתר</span></label><input id="t_airplay" value="${esc(t.airplay_log)}" placeholder="למשל: גלגלצ 5.8 · כאן 88 7.8"></div>
+    <div class="f"><label>מילים</label><textarea class="lyr" id="t_lyrics" placeholder="מילות השיר, שורה שורה.">${esc(t.lyrics)}</textarea></div>
+    <div class="f"><label>קרדיטים</label><div id="creditsBox">${crHtml}</div>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="addCredit()">+ שורה</button><button class="btn ghost sm" onclick="togglePaste()">📋 הדבקת רשימה</button></div>
+      <div id="pasteBox" style="display:none;margin-top:10px">
+        <textarea id="pasteText" placeholder="הדביקי כאן, שורה לכל קרדיט. לדוגמה:&#10;מילים ולחן: שירה הומינר&#10;הפקה מוזיקלית: דניאל וגמן&#10;מיקס ומאסטרינג: יוסי כהן"></textarea>
+        <div class="hint">מפרידים בין התפקיד לשם עם נקודתיים ( : ), מקף ( - ) או טאב. המערכת תחלק לבד.</div>
+        <button class="btn sm" style="margin-top:8px" onclick="parsePaste()">פענוח והוספה</button>
+      </div></div>
+    <div class="f"><label>קומוניקט לשיר</label><textarea id="t_comm" placeholder="הסיפור של השיר, בקול שלך.">${esc(t.communique)}</textarea><div class="hint">מופיע בעמוד (טאב "קומוניקט") וייכנס למייל לרדיו.</div></div>
+    <div class="mono" style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-ink);margin:6px 0 8px">קישורי האזנה</div>
+    <div class="grid2"><div class="f"><label>ספוטיפיי</label><input id="t_spotify" value="${esc(t.spotify_url)}"></div><div class="f"><label>אפל מיוזיק</label><input id="t_apple" value="${esc(t.apple_url)}"></div>
+    <div class="f"><label>יוטיוב</label><input id="t_youtube" value="${esc(t.youtube_url)}"></div><div class="f"><label>בנדקאמפ</label><input id="t_bandcamp" value="${esc(t.bandcamp_url)}"></div>
+    <div class="f"><label>שמירה מראש (Pre-Save)</label><input id="t_presave" value="${esc(t.presave_url)}"></div><div class="f"><label>קליפ (וידאו)</label><input id="t_video" value="${esc(t.video_url)}"></div></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:8px"><span class="saved" id="sv-t"></span><button class="btn ghost sm danger" style="margin-inline-start:auto" onclick="delTrack('${t.id}','${esc(t.title)}')">מחיקת שיר</button></div>`);
+  bindTrack();
+}
+function creditRow(c){return `<div class="credit-row"><input class="cr-role" placeholder="תפקיד" value="${esc(c.role)}"><input class="cr-name" placeholder="שם" value="${esc(c.name)}"><button class="x" onclick="this.parentElement.remove();saveTrackNow()">✕</button></div>`;}
+function addCredit(){document.getElementById("creditsBox").insertAdjacentHTML("beforeend",creditRow({role:"",name:""}));bindCredits();}
+function bindCredits(){document.querySelectorAll("#creditsBox input").forEach(el=>el.oninput=()=>autosave(saveTrackNow,"t"));}
+function togglePaste(){const b=document.getElementById("pasteBox");b.style.display=b.style.display==="none"?"block":"none";if(b.style.display==="block")setTimeout(()=>document.getElementById("pasteText").focus(),40);}
+function parsePaste(){
+  const txt=v("pasteText");if(!txt.trim()){togglePaste();return;}
+  const box=document.getElementById("creditsBox");let added=0;
+  txt.split(/\r?\n/).forEach(raw=>{const line=raw.trim();if(!line)return;
+    let role=line,name="";const m=line.match(/^(.*?)\s*[:：\-–—\t]\s*(.+)$/);
+    if(m){role=m[1].trim();name=m[2].trim();}
+    box.insertAdjacentHTML("beforeend",creditRow({role,name}));added++;});
+  document.querySelectorAll("#creditsBox .credit-row").forEach(r=>{if(!r.querySelector(".cr-role").value&&!r.querySelector(".cr-name").value)r.remove();});
+  bindCredits();document.getElementById("pasteText").value="";togglePaste();saveTrackNow();toast(added+" קרדיטים נוספו ✓");
+}
+function bindTrack(){
+  ["t_title","t_date","t_lyrics","t_comm","t_spotify","t_apple","t_youtube","t_bandcamp","t_presave","t_video","t_airplay"].forEach(id=>{const el=document.getElementById(id);el&&el.addEventListener("input",()=>autosave(saveTrackNow,"t"));});
+  ["t_status","t_pub"].forEach(id=>{const el=document.getElementById(id);el&&el.addEventListener("change",saveTrackNow);});bindCredits();
+}
+async function saveTrackNow(){
+  const t=DATA.tracks.find(x=>x.id===curTrack);if(!t||!document.getElementById("t_title"))return;saving("sv-t");
+  const data={title:v("t_title"),status:v("t_status"),release_date:v("t_date")||null,lyrics:v("t_lyrics"),communique:v("t_comm"),spotify_url:v("t_spotify")||null,apple_url:v("t_apple")||null,youtube_url:v("t_youtube")||null,bandcamp_url:v("t_bandcamp")||null,presave_url:v("t_presave")||null,video_url:v("t_video")||null,airplay_log:v("t_airplay"),published:document.getElementById("t_pub").checked};
+  const credits=[...document.querySelectorAll("#creditsBox .credit-row")].map(r=>({role:r.querySelector(".cr-role").value,name:r.querySelector(".cr-name").value}));
+  try{await api("saveTrack",{id:curTrack,data,credits});Object.assign(t,data);t.track_credits=credits.filter(c=>c.name||c.role).map((c,i)=>({role:c.role,name:c.name,id:"tmp"+i,sort_order:i}));saved("sv-t");renderWorks();renderHome();}catch(e){toast("שגיאה: "+e.message,1);}
+}
+function delTrack(id,name){confirmBox("למחוק את השיר "+name+"?",async ok=>{if(!ok)return;try{await api("deleteTrack",{id});DATA.tracks=DATA.tracks.filter(x=>x.id!==id);closeSheet();renderWorks();renderHome();toast("נמחק ✓");}catch(e){toast("שגיאה",1);}});}
+const MEDIA_PUB="https://krttlnkystsykrvjfzwk.supabase.co/storage/v1/object/public/media";
+function renderPhotos(){const g=document.getElementById("photosGrid");if(!g)return;const ph=DATA.photos||[];g.innerHTML=ph.length?ph.map(p=>`<div style="position:relative"><img src="${MEDIA_PUB}/${p.path}" style="width:76px;height:76px;object-fit:cover;border:1px solid var(--edge)"><button onclick="delPhoto('${p.id}')" style="position:absolute;top:-7px;left:-7px;background:var(--danger);color:#fff;border:none;width:20px;height:20px;border-radius:50%;cursor:pointer;font-size:11px;line-height:1">✕</button></div>`).join(""):'<div class="hint">אין תמונות עדיין.</div>';}
+async function uploadPhoto(file){if(!file)return;toast("מעלה…");try{const ext=(file.name.split(".").pop()||"jpg").toLowerCase();const path="press/"+crypto.randomUUID()+"."+ext;const u=await api("uploadUrl",{path});const put=await fetch(u.uploadUrl,{method:"PUT",headers:{"content-type":file.type||"image/jpeg","x-upsert":"true"},body:file});if(!put.ok)throw new Error("ההעלאה נכשלה");const r=await api("addPhoto",{path});DATA.photos=DATA.photos||[];DATA.photos.push(r.photo);renderPhotos();toast("תמונה נוספה ✓");}catch(e){toast("שגיאה: "+e.message,1);}}
+function delPhoto(id){confirmBox("למחוק את התמונה?",async ok=>{if(!ok)return;try{await api("deletePhoto",{id});DATA.photos=(DATA.photos||[]).filter(p=>p.id!==id);renderPhotos();toast("נמחקה ✓");}catch(e){toast("שגיאה",1);}});}
+
+/* CONTACTS */
+function renderContacts(){
+  document.getElementById("contactsSub").textContent=DATA.contacts.length+" תחנות";
+  document.getElementById("contactsBody").innerHTML=`
+    <div class="toolbar"><input class="search" id="cSearch" placeholder="חיפוש תחנה…" value="${esc(cFilter.q)}">
+      <span class="chip ${cFilter.cat==="all"?"on":""}" onclick="setCF('all')">הכל</span>
+      <span class="chip ${cFilter.cat==="national"?"on":""}" onclick="setCF('national')">ראשיות</span>
+      <span class="chip ${cFilter.cat==="regional"?"on":""}" onclick="setCF('regional')">אזוריות</span>
+      <span class="chip ${cFilter.cat==="student"?"on":""}" onclick="setCF('student')">סטודנטים</span>
+      <button class="btn sm" style="margin-inline-start:auto" onclick="openAddStation()">+ הוסף תחנה</button></div>
+    <table><thead><tr><th>תחנה</th><th>קטגוריה</th><th>ערוץ</th><th>כתובת / טופס</th><th>סגנון</th><th>אמינות</th><th></th></tr></thead><tbody id="cbody"></tbody></table>`;
+  document.getElementById("cSearch").addEventListener("input",e=>{cFilter.q=e.target.value;renderRows();});renderRows();
+}
+function setCF(val){cFilter.cat=val;renderContacts();}
+function renderRows(){
+  const q=cFilter.q.trim();
+  const list=DATA.contacts.filter(c=>(cFilter.cat==="all"||c.category===cFilter.cat)&&(!q||(c.name||"").includes(q)||(c.contact||"").includes(q)));
+  const body=document.getElementById("cbody");
+  if(!list.length){body.innerHTML='<tr><td colspan="6"><div class="empty">אין תחנות שתואמות.</div></td></tr>';return;}
+  body.innerHTML=list.map(c=>{
+    const conf=c.confidence==="verified"?'<span class="pill v" onclick="cycleConf(\''+c.id+'\')">מאומת</span>':c.confidence==="secondary"?'<span class="pill s" onclick="cycleConf(\''+c.id+'\')">לאמת</span>':'<span class="pill n" onclick="cycleConf(\''+c.id+'\')">—</span>';
+    return `<tr data-id="${c.id}"><td style="min-width:110px"><input value="${esc(c.name)}" data-k="name"></td>
+      <td><select data-k="category"><option value="national" ${c.category==="national"?"selected":""}>ראשית</option><option value="regional" ${c.category==="regional"?"selected":""}>אזורית</option><option value="student" ${c.category==="student"?"selected":""}>סטודנטים</option></select></td>
+      <td><select data-k="channel_type"><option value="email" ${c.channel_type==="email"?"selected":""}>מייל</option><option value="form" ${c.channel_type==="form"?"selected":""}>טופס</option><option value="phone" ${c.channel_type==="phone"?"selected":""}>טלפון</option><option value="unknown" ${c.channel_type==="unknown"?"selected":""}>—</option></select></td>
+      <td style="min-width:140px"><input value="${esc(c.contact)}" data-k="contact" style="direction:ltr;text-align:right"></td>
+      <td><input value="${esc(c.style)}" data-k="style" placeholder="—" style="min-width:80px"></td>
+      <td>${conf}</td><td><button class="iconbtn" title="מחיקה" onclick="delRow('${c.id}','${esc(c.name)}')">🗑</button></td></tr>`;
+  }).join("");
+  document.querySelectorAll("#cbody tr").forEach(tr=>tr.querySelectorAll("[data-k]").forEach(el=>{el.addEventListener("change",()=>saveRow(tr.dataset.id));el.addEventListener("blur",()=>saveRow(tr.dataset.id));}));
+}
+function rowData(tr){const d={};tr.querySelectorAll("[data-k]").forEach(el=>d[el.dataset.k]=el.value);return d;}
+async function saveRow(id){const tr=document.querySelector(`tr[data-id="${id}"]`);if(!tr)return;const data=rowData(tr);const c=DATA.contacts.find(x=>x.id===id);if(c)Object.assign(c,data);try{await api("saveContact",{id,data});}catch(e){toast("שגיאה בשמירה",1);}}
+async function cycleConf(id){const c=DATA.contacts.find(x=>x.id===id);const o=["verified","secondary","none"];c.confidence=o[(o.indexOf(c.confidence)+1)%3];try{await api("saveContact",{id,data:{confidence:c.confidence}});renderRows();}catch(e){toast("שגיאה",1);}}
+function delRow(id,name){confirmBox("למחוק את "+name+"?",async ok=>{if(!ok)return;try{await api("deleteContact",{id});DATA.contacts=DATA.contacts.filter(c=>c.id!==id);renderRows();document.getElementById("contactsSub").textContent=DATA.contacts.length+" תחנות";toast("נמחק ✓");}catch(e){toast("שגיאה",1);}});}
+function openAddStation(){
+  openSheet("הוספת תחנה",`
+    <div class="f"><label>שם התחנה</label><input id="ns_name" placeholder="למשל: רדיו הקצה"></div>
+    <div class="grid2"><div class="f"><label>קטגוריה</label><select id="ns_cat"><option value="national">ראשית</option><option value="regional" selected>אזורית</option><option value="student">סטודנטים</option></select></div>
+    <div class="f"><label>ערוץ</label><select id="ns_chan"><option value="email" selected>מייל</option><option value="form">טופס</option><option value="phone">טלפון</option></select></div></div>
+    <div class="f"><label>כתובת / טופס / טלפון</label><input id="ns_contact" style="direction:ltr;text-align:right"></div>
+    <button class="btn" onclick="doAddStation()">הוספה</button>
+    <div style="border-top:1px solid var(--edge);margin:18px 0 14px"></div>
+    <div class="f"><label>📋 או הדביקי רשימה</label>
+      <textarea id="ns_paste" placeholder="שורה לכל תחנה. לדוגמה:&#10;רדיו הקצה: music@kzradio.net&#10;כאן 88: 88music@kan.org.il"></textarea>
+      <div class="hint">מפרידים בין השם לכתובת עם נקודתיים ( : ). המערכת תוסיף כל שורה כתחנה (אזורית, מייל).</div>
+      <button class="btn ghost sm" style="margin-top:8px" onclick="parseStations()">פענוח והוספה</button></div>`);
+  setTimeout(()=>document.getElementById("ns_name").focus(),50);
+}
+async function doAddStation(){
+  const name=v("ns_name").trim();if(!name){toast("צריך שם לתחנה",1);return;}
+  try{await api("saveContact",{data:{name,category:v("ns_cat"),channel_type:v("ns_chan"),contact:v("ns_contact").trim(),confidence:"none"}});DATA=await api("get");closeSheet();renderContacts();toast("התחנה נוספה ✓");}catch(e){toast("שגיאה: "+e.message,1);}
+}
+async function parseStations(){
+  const txt=v("ns_paste");if(!txt.trim()){return;}
+  const lines=txt.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);let added=0;
+  for(const line of lines){
+    let name=line,contact="";const m=line.match(/^(.*?)\s*[:：\t]\s*(.+)$/);
+    if(m){name=m[1].trim();contact=m[2].trim();}
+    const chan=/@/.test(contact)?"email":/^\d[\d\-\s]+$/.test(contact)?"phone":contact?"form":"unknown";
+    try{await api("saveContact",{data:{name,category:"regional",channel_type:chan,contact,confidence:"none"}});added++;}catch(e){}
+  }
+  DATA=await api("get");closeSheet();renderContacts();toast(added+" תחנות נוספו ✓");
+}
+
+/* ===== SEND ===== */
+const FN_SEND="https://krttlnkystsykrvjfzwk.supabase.co/functions/v1/send";
+let sendTrackId=null, TEMPLATES=[];
+async function loadTemplates(){try{const d=await apiSend("templates");TEMPLATES=d.templates||[];}catch(e){}renderSend();}
+function applyTemplate(id){const t=TEMPLATES.find(x=>x.id===id);if(!t)return;const s=document.getElementById("s_subject"),b=document.getElementById("s_body");if(s)s.value=t.subject||"";if(b)b.value=t.body||"";}
+async function saveTemplate(){const name=prompt("שם לתבנית (למשל: פנייה כללית):");if(!name)return;try{await apiSend("saveTemplate",{name,subject:v("s_subject"),body:v("s_body")});toast("תבנית נשמרה ✓");loadTemplates();}catch(e){toast("שגיאה: "+e.message,1);}}
+async function delTemplate(){const id=v("s_tmpl");if(!id){toast("בחרי תבנית למחיקה",1);return;}confirmBox("למחוק את התבנית?",async ok=>{if(!ok)return;try{await apiSend("deleteTemplate",{id});toast("נמחקה ✓");loadTemplates();}catch(e){toast("שגיאה",1);}});}
+async function apiSend(action,extra={}){
+  const r=await fetch(FN_SEND,{method:"POST",headers:{"Authorization":"Bearer "+KEY,"apikey":KEY,"Content-Type":"application/json"},body:JSON.stringify({password:PW,action,...extra})});
+  const j=await r.json().catch(()=>({error:"bad response"}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j;
+}
+function renderSend(){
+  const box=document.getElementById("sendBody");if(!box)return;
+  if(!DATA.tracks.length){box.innerHTML='<div class="empty">קודם הוסיפי שיר במסך "המוזיקה".</div>';return;}
+  if(!sendTrackId||!DATA.tracks.find(t=>t.id===sendTrackId))sendTrackId=(DATA.tracks.find(t=>t.status==="upcoming")||DATA.tracks[0]).id;
+  const t=DATA.tracks.find(x=>x.id===sendTrackId);
+  const email=DATA.contacts.filter(c=>c.channel_type==="email"&&(c.contact||"").includes("@"));
+  const manual=DATA.contacts.filter(c=>c.channel_type!=="email");
+  const defBody=`שלום {שם התחנה},\nשמי שירה הומינר.\n\n{קומוניקט}\n\nאשמח שתקשיבו ותשקלו להשמיע.\nתודה,\nשירה`;
+  document.getElementById("sendSub").textContent=email.length+" תחנות במייל";
+  box.innerHTML=`
+  <div class="card"><div class="ct">מה שולחים</div>
+    <div class="f"><label>שיר</label><select id="s_track" onchange="sendTrackId=this.value;renderSend()">${DATA.tracks.map(x=>`<option value="${x.id}" ${x.id===t.id?"selected":""}>${esc(x.title)}</option>`).join("")}</select></div>
+    <div class="f"><label>תבנית מייל <span class="hint" style="display:inline">— שמרי נוסח לשימוש חוזר בשחרורים הבאים</span></label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><select id="s_tmpl" onchange="applyTemplate(this.value)" style="flex:1;min-width:150px"><option value="">— בחרי תבנית שמורה —</option>${TEMPLATES.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select><button class="btn ghost sm" onclick="saveTemplate()">שמירה כתבנית</button><button class="btn ghost sm" onclick="delTemplate()">מחיקה</button></div></div>
+    <div class="f"><label>נושא המייל</label><input id="s_subject" value="שירה הומינר · ${esc(t.title)}"></div>
+    <div class="f"><label>גוף המייל <span class="hint" style="display:inline">— {שם התחנה} ו-{קומוניקט} מתמלאים אוטומטית (הקומוניקט לפי השיר הנבחר)</span></label><textarea id="s_body" style="min-height:180px">${esc(defBody)}</textarea></div>
+    <button class="btn ghost sm" onclick="sendTest()">✉️ שליחת מייל בדיקה לעצמך</button>
+  </div>
+  <div class="card"><div class="ct">נמענים · ${email.length} תחנות במייל</div>
+    <input class="search" id="rcptFilter" placeholder="סינון לפי שם או סגנון…" oninput="filterRcpt()" style="margin-bottom:10px">
+    <div style="margin-bottom:10px;font-size:12.5px"><a onclick="toggleAll(true)">בחרו את המוצגים</a> · <a onclick="toggleAll(false)">נקו</a></div>
+    ${email.map(c=>`<label class="rcpt-row" data-s="${esc(((c.name||"")+" "+(c.style||"")).toLowerCase())}" style="display:flex;align-items:center;padding:6px 0;font-size:13.5px"><input type="checkbox" class="rcpt" value="${c.id}" checked style="width:16px;height:16px;accent-color:var(--sage);margin-inline-end:9px"> ${esc(c.name)}${c.style?` <span class="chip2" style="margin-inline-start:8px;font-size:10px">${esc(c.style)}</span>`:""} <span class="mono" style="color:var(--faint);font-size:11px;margin-inline-start:8px;direction:ltr">${esc(c.contact)}</span></label>`).join("")||'<div class="empty">אין תחנות עם מייל. הוסיפי במסך "תחנות הרדיו".</div>'}
+    ${manual.length?`<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--edge2)"><div class="hint">${manual.length} תחנות ללא מייל (טופס/טלפון) — לפנייה ידנית: ${manual.map(c=>esc(c.name)).join(", ")}</div></div>`:""}
+  </div>
+  <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+    <div class="hint">שולח מ: shira@music.shirahouminer.com · תשובות מגיעות לג'ימייל שלך</div>
+    <button class="btn" onclick="doSend()">שליחה לתחנות שנבחרו</button>
+  </div>
+  <div id="sendResult"></div>
+  <div style="margin-top:6px"><a onclick="renderTracking()" style="font-size:13px">↻ צפייה במעקב שליחות</a></div>`;
+}
+function toggleAll(val){document.querySelectorAll(".rcpt-row").forEach(r=>{if(r.style.display!=="none")r.querySelector(".rcpt").checked=val;});}
+function filterRcpt(){const q=(v("rcptFilter")||"").trim().toLowerCase();document.querySelectorAll(".rcpt-row").forEach(r=>{r.style.display=(!q||(r.dataset.s||"").includes(q))?"flex":"none";});}
+async function sendTest(){try{await apiSend("test",{trackId:sendTrackId,subject:v("s_subject"),body:v("s_body")});toast("מייל בדיקה נשלח לג'ימייל שלך ✓");}catch(e){toast("שגיאה: "+e.message,1);}}
+async function doSend(){
+  const ids=[...document.querySelectorAll(".rcpt:checked")].map(c=>c.value);
+  if(!ids.length){toast("לא נבחרו תחנות",1);return;}
+  const t=DATA.tracks.find(x=>x.id===sendTrackId);
+  confirmBox('לשלוח את "'+t.title+'" ל-'+ids.length+" תחנות?",async ok=>{if(!ok)return;toast("שולח…");
+    try{const r=await apiSend("sendCampaign",{trackId:sendTrackId,subject:v("s_subject"),body:v("s_body"),contactIds:ids});
+      document.getElementById("sendResult").innerHTML=`<div class="card"><div class="ct">נשלח</div><div style="font-size:15px">✅ ${r.sent} תחנות${r.skipped?` · ${r.skipped} דילגו (כבר קיבלו את השיר)`:""}${r.failed?` · <span style="color:var(--danger)">${r.failed} נכשלו</span>`:""}</div></div>`;
+      toast("נשלח ל-"+r.sent+" תחנות ✓");renderTracking();
+    }catch(e){toast("שגיאה: "+e.message,1);}});
+}
+async function renderTracking(){
+  try{const d=await apiSend("campaigns");
+    const rows=(d.sends||[]).sort((a,b)=>(b.sent_at||"").localeCompare(a.sent_at||"")).map(s=>{
+      const st=s.status==="opened"||s.opened_at?'<span class="pill v">נפתח</span>':s.status==="failed"?'<span class="pill s">נכשל</span>':'<span class="pill n">נשלח</span>';
+      const when=s.opened_at?new Date(s.opened_at).toLocaleString("he-IL"):s.sent_at?new Date(s.sent_at).toLocaleString("he-IL"):"—";
+      return `<tr><td>${esc(s.to_name||s.to_email)}</td><td>${st}</td><td class="mono" style="font-size:11px;color:var(--faint)">${when}</td></tr>`;}).join("");
+    const opened=(d.sends||[]).filter(s=>s.opened_at).length,sent=(d.sends||[]).length;
+    document.getElementById("sendResult").innerHTML=`<div class="card"><div class="ct">מעקב</div><div style="margin-bottom:12px;font-size:15px">${sent} נשלחו · <b style="color:var(--sage-ink)">${opened} פתחו</b></div><table><thead><tr><th>תחנה</th><th>סטטוס</th><th>עודכן</th></tr></thead><tbody>${rows||'<tr><td colspan="3" class="empty">עדיין לא נשלחו קמפיינים</td></tr>'}</tbody></table></div>`;
+  }catch(e){toast("שגיאה: "+e.message,1);}
+}
+
+if(PW){boot().catch(()=>sessionStorage.removeItem("pw"));}
+</script>
+</body>
+</html>
