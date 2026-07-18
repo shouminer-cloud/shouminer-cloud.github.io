@@ -275,7 +275,11 @@ function openTrack(id){
     <div class="grid2"><div class="f"><label>ספוטיפיי</label><input id="t_spotify" value="${esc(t.spotify_url)}"></div><div class="f"><label>אפל מיוזיק</label><input id="t_apple" value="${esc(t.apple_url)}"></div>
     <div class="f"><label>יוטיוב</label><input id="t_youtube" value="${esc(t.youtube_url)}"></div><div class="f"><label>בנדקאמפ</label><input id="t_bandcamp" value="${esc(t.bandcamp_url)}"></div>
     <div class="f"><label>שמירה מראש (Pre-Save)</label><input id="t_presave" value="${esc(t.presave_url)}"></div><div class="f"><label>קליפ (וידאו)</label><input id="t_video" value="${esc(t.video_url)}"></div></div>
-    <div style="display:flex;align-items:center;gap:12px;margin-top:8px"><span class="saved" id="sv-t"></span><button class="btn ghost sm danger" style="margin-inline-start:auto" onclick="delTrack('${t.id}','${esc(t.title)}')">מחיקת שיר</button></div>`);
+    <div class="mono" style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-ink);margin:14px 0 8px">קבצי אודיו לרדיו</div>
+    <div class="grid2"><div class="f"><label>קובץ MP3 · איכות שידור</label><input id="t_mp3" value="${esc(t.audio_mp3_url)}" placeholder="קישור להורדת MP3"></div>
+    <div class="f"><label>קובץ WAV · מאסטר</label><input id="t_wav" value="${esc(t.audio_wav_url)}" placeholder="קישור להורדת WAV"></div></div>
+    <div class="hint">אלה הקבצים שמצורפים למייל לשדרנים (הם היחידים שמקבלים אותם — לא מופיע בעמוד הפומבי). לשיר חדש בלי קבצים, שלחי לי את ה-MP3/WAV ואעלה אותם.</div>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:14px"><span class="saved" id="sv-t"></span><button class="btn ghost sm danger" style="margin-inline-start:auto" onclick="delTrack('${t.id}','${esc(t.title)}')">מחיקת שיר</button></div>`);
   bindTrack();
 }
 function creditRow(c){return `<div class="credit-row"><input class="cr-role" placeholder="תפקיד" value="${esc(c.role)}"><input class="cr-name" placeholder="שם" value="${esc(c.name)}"><button class="x" onclick="this.parentElement.remove();saveTrackNow()">✕</button></div>`;}
@@ -293,12 +297,12 @@ function parsePaste(){
   bindCredits();document.getElementById("pasteText").value="";togglePaste();saveTrackNow();toast(added+" קרדיטים נוספו ✓");
 }
 function bindTrack(){
-  ["t_title","t_date","t_lyrics","t_comm","t_spotify","t_apple","t_youtube","t_bandcamp","t_presave","t_video","t_airplay"].forEach(id=>{const el=document.getElementById(id);el&&el.addEventListener("input",()=>autosave(saveTrackNow,"t"));});
+  ["t_title","t_date","t_lyrics","t_comm","t_spotify","t_apple","t_youtube","t_bandcamp","t_presave","t_video","t_airplay","t_mp3","t_wav"].forEach(id=>{const el=document.getElementById(id);el&&el.addEventListener("input",()=>autosave(saveTrackNow,"t"));});
   ["t_status","t_pub"].forEach(id=>{const el=document.getElementById(id);el&&el.addEventListener("change",saveTrackNow);});bindCredits();
 }
 async function saveTrackNow(){
   const t=DATA.tracks.find(x=>x.id===curTrack);if(!t||!document.getElementById("t_title"))return;saving("sv-t");
-  const data={title:v("t_title"),status:v("t_status"),release_date:v("t_date")||null,lyrics:v("t_lyrics"),communique:v("t_comm"),spotify_url:v("t_spotify")||null,apple_url:v("t_apple")||null,youtube_url:v("t_youtube")||null,bandcamp_url:v("t_bandcamp")||null,presave_url:v("t_presave")||null,video_url:v("t_video")||null,airplay_log:v("t_airplay"),published:document.getElementById("t_pub").checked};
+  const data={title:v("t_title"),status:v("t_status"),release_date:v("t_date")||null,lyrics:v("t_lyrics"),communique:v("t_comm"),spotify_url:v("t_spotify")||null,apple_url:v("t_apple")||null,youtube_url:v("t_youtube")||null,bandcamp_url:v("t_bandcamp")||null,presave_url:v("t_presave")||null,video_url:v("t_video")||null,airplay_log:v("t_airplay"),audio_mp3_url:v("t_mp3")||null,audio_wav_url:v("t_wav")||null,published:document.getElementById("t_pub").checked};
   const credits=[...document.querySelectorAll("#creditsBox .credit-row")].map(r=>({role:r.querySelector(".cr-role").value,name:r.querySelector(".cr-name").value}));
   try{await api("saveTrack",{id:curTrack,data,credits});Object.assign(t,data);t.track_credits=credits.filter(c=>c.name||c.role).map((c,i)=>({role:c.role,name:c.name,id:"tmp"+i,sort_order:i}));saved("sv-t");renderWorks();renderHome();}catch(e){toast("שגיאה: "+e.message,1);}
 }
@@ -399,6 +403,7 @@ function renderSend(){
       <div style="display:flex;gap:8px;flex-wrap:wrap"><select id="s_tmpl" onchange="applyTemplate(this.value)" style="flex:1;min-width:150px"><option value="">— בחרי תבנית שמורה —</option>${TEMPLATES.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select><button class="btn ghost sm" onclick="saveTemplate()">שמירה כתבנית</button><button class="btn ghost sm" onclick="delTemplate()">מחיקה</button></div></div>
     <div class="f"><label>נושא המייל</label><input id="s_subject" value="שירה הומינר · ${esc(t.title)}"></div>
     <div class="f"><label>גוף המייל <span class="hint" style="display:inline">— {שם התחנה} ו-{קומוניקט} מתמלאים אוטומטית (הקומוניקט לפי השיר הנבחר)</span></label><textarea id="s_body" style="min-height:180px">${esc(defBody)}</textarea></div>
+    <label class="chk" style="display:flex;align-items:center;gap:8px;margin:2px 0 12px;font-size:13.5px"><input type="checkbox" id="s_audio" checked style="width:16px;height:16px;accent-color:var(--sage)"> צירוף קבצי האודיו של השיר למייל${(t.audio_mp3_url||t.audio_wav_url)?` <span class="chip2" style="margin-inline-start:4px;font-size:10px">${[t.audio_mp3_url&&"MP3",t.audio_wav_url&&"WAV"].filter(Boolean).join(" · ")}</span>`:` <span class="hint" style="display:inline">— אין קבצים לשיר הזה (הוסיפי במסך "המוזיקה")</span>`}</label>
     <button class="btn ghost sm" onclick="sendTest()">✉️ שליחת מייל בדיקה לעצמך</button>
   </div>
   <div class="card"><div class="ct">נמענים · ${email.length} תחנות במייל</div>
@@ -416,13 +421,14 @@ function renderSend(){
 }
 function toggleAll(val){document.querySelectorAll(".rcpt-row").forEach(r=>{if(r.style.display!=="none")r.querySelector(".rcpt").checked=val;});}
 function filterRcpt(){const q=(v("rcptFilter")||"").trim().toLowerCase();document.querySelectorAll(".rcpt-row").forEach(r=>{r.style.display=(!q||(r.dataset.s||"").includes(q))?"flex":"none";});}
-async function sendTest(){try{await apiSend("test",{trackId:sendTrackId,subject:v("s_subject"),body:v("s_body")});toast("מייל בדיקה נשלח לג'ימייל שלך ✓");}catch(e){toast("שגיאה: "+e.message,1);}}
+function attachAudio(){const e=document.getElementById("s_audio");return e?e.checked:true;}
+async function sendTest(){try{await apiSend("test",{trackId:sendTrackId,subject:v("s_subject"),body:v("s_body"),attachAudio:attachAudio()});toast("מייל בדיקה נשלח לג'ימייל שלך ✓");}catch(e){toast("שגיאה: "+e.message,1);}}
 async function doSend(){
   const ids=[...document.querySelectorAll(".rcpt:checked")].map(c=>c.value);
   if(!ids.length){toast("לא נבחרו תחנות",1);return;}
   const t=DATA.tracks.find(x=>x.id===sendTrackId);
   confirmBox('לשלוח את "'+t.title+'" ל-'+ids.length+" תחנות?",async ok=>{if(!ok)return;toast("שולח…");
-    try{const r=await apiSend("sendCampaign",{trackId:sendTrackId,subject:v("s_subject"),body:v("s_body"),contactIds:ids});
+    try{const r=await apiSend("sendCampaign",{trackId:sendTrackId,subject:v("s_subject"),body:v("s_body"),contactIds:ids,attachAudio:attachAudio()});
       document.getElementById("sendResult").innerHTML=`<div class="card"><div class="ct">נשלח</div><div style="font-size:15px">✅ ${r.sent} תחנות${r.skipped?` · ${r.skipped} דילגו (כבר קיבלו את השיר)`:""}${r.failed?` · <span style="color:var(--danger)">${r.failed} נכשלו</span>`:""}</div></div>`;
       toast("נשלח ל-"+r.sent+" תחנות ✓");renderTracking();
     }catch(e){toast("שגיאה: "+e.message,1);}});
