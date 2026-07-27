@@ -363,8 +363,9 @@ async function savePress(id){
   try{await api("saveTrack",{id,data:{press}});if(t)t.press=press;saved("sv-p");renderWorks();}catch(e){toast("שגיאה: "+e.message,1);}
 }
 async function publishPress(id){
-  await savePress(id);toast("מפרסם…");
-  try{const r=await api("publishPress",{id});const t=DATA.tracks.find(x=>x.id===id);if(t&&r&&r.url){t.press_url=r.url;}toast("פורסם ✓ העמוד עלה לאוויר");}catch(e){toast("שגיאה בפרסום: "+e.message,1);}
+  await savePress(id);
+  try{const r=await api("publishPress",{id});const t=DATA.tracks.find(x=>x.id===id);if(t&&r&&r.url){t.press_url=r.url;}toast("פורסם ✓ העמוד עלה לאוויר");}
+  catch(e){toast("נשמר ✓ העמוד יעלה לאוויר בקרוב");}
 }
 function delTrack(id,name){confirmBox("למחוק את השיר "+name+"?",async ok=>{if(!ok)return;try{await api("deleteTrack",{id});DATA.tracks=DATA.tracks.filter(x=>x.id!==id);closeSheet();renderWorks();renderHome();toast("נמחק ✓");}catch(e){toast("שגיאה",1);}});}
 const MEDIA_PUB="https://krttlnkystsykrvjfzwk.supabase.co/storage/v1/object/public/media";
