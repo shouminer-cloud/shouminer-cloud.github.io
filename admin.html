@@ -279,6 +279,7 @@ function openTrack(id){
     <div class="grid2"><div class="f"><label>קובץ MP3 · איכות שידור</label><input id="t_mp3" value="${esc(t.audio_mp3_url)}" placeholder="קישור להורדת MP3"></div>
     <div class="f"><label>קובץ WAV · מאסטר</label><input id="t_wav" value="${esc(t.audio_wav_url)}" placeholder="קישור להורדת WAV"></div></div>
     <div class="hint">אלה הקבצים שמצורפים למייל לשדרנים (הם היחידים שמקבלים אותם — לא מופיע בעמוד הפומבי). לשיר חדש בלי קבצים, שלחי לי את ה-MP3/WAV ואעלה אותם.</div>
+    <div class="f" style="margin-top:14px"><label>עמוד קומוניקט (עיתונות)</label><input id="t_press" value="${esc(t.press_url)}" placeholder="https://music.shirahouminer.com/press/..."><div class="hint">אם מוגדר, כפתור "לעמוד השיר ולחומרים" במייל לשדרנים יוביל לכאן במקום לעמוד הבית.</div></div>
     <div style="display:flex;align-items:center;gap:12px;margin-top:14px"><span class="saved" id="sv-t"></span><button class="btn ghost sm danger" style="margin-inline-start:auto" onclick="delTrack('${t.id}','${esc(t.title)}')">מחיקת שיר</button></div>`);
   bindTrack();
 }
@@ -297,12 +298,12 @@ function parsePaste(){
   bindCredits();document.getElementById("pasteText").value="";togglePaste();saveTrackNow();toast(added+" קרדיטים נוספו ✓");
 }
 function bindTrack(){
-  ["t_title","t_date","t_lyrics","t_comm","t_spotify","t_apple","t_youtube","t_bandcamp","t_presave","t_video","t_airplay","t_mp3","t_wav"].forEach(id=>{const el=document.getElementById(id);el&&el.addEventListener("input",()=>autosave(saveTrackNow,"t"));});
+  ["t_title","t_date","t_lyrics","t_comm","t_spotify","t_apple","t_youtube","t_bandcamp","t_presave","t_video","t_airplay","t_mp3","t_wav","t_press"].forEach(id=>{const el=document.getElementById(id);el&&el.addEventListener("input",()=>autosave(saveTrackNow,"t"));});
   ["t_status","t_pub"].forEach(id=>{const el=document.getElementById(id);el&&el.addEventListener("change",saveTrackNow);});bindCredits();
 }
 async function saveTrackNow(){
   const t=DATA.tracks.find(x=>x.id===curTrack);if(!t||!document.getElementById("t_title"))return;saving("sv-t");
-  const data={title:v("t_title"),status:v("t_status"),release_date:v("t_date")||null,lyrics:v("t_lyrics"),communique:v("t_comm"),spotify_url:v("t_spotify")||null,apple_url:v("t_apple")||null,youtube_url:v("t_youtube")||null,bandcamp_url:v("t_bandcamp")||null,presave_url:v("t_presave")||null,video_url:v("t_video")||null,airplay_log:v("t_airplay"),audio_mp3_url:v("t_mp3")||null,audio_wav_url:v("t_wav")||null,published:document.getElementById("t_pub").checked};
+  const data={title:v("t_title"),status:v("t_status"),release_date:v("t_date")||null,lyrics:v("t_lyrics"),communique:v("t_comm"),spotify_url:v("t_spotify")||null,apple_url:v("t_apple")||null,youtube_url:v("t_youtube")||null,bandcamp_url:v("t_bandcamp")||null,presave_url:v("t_presave")||null,video_url:v("t_video")||null,airplay_log:v("t_airplay"),audio_mp3_url:v("t_mp3")||null,audio_wav_url:v("t_wav")||null,press_url:v("t_press")||null,published:document.getElementById("t_pub").checked};
   const credits=[...document.querySelectorAll("#creditsBox .credit-row")].map(r=>({role:r.querySelector(".cr-role").value,name:r.querySelector(".cr-name").value}));
   try{await api("saveTrack",{id:curTrack,data,credits});Object.assign(t,data);t.track_credits=credits.filter(c=>c.name||c.role).map((c,i)=>({role:c.role,name:c.name,id:"tmp"+i,sort_order:i}));saved("sv-t");renderWorks();renderHome();}catch(e){toast("שגיאה: "+e.message,1);}
 }
