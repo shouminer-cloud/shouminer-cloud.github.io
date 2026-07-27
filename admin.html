@@ -279,7 +279,10 @@ function openTrack(id){
     <div class="grid2"><div class="f"><label>קובץ MP3 · איכות שידור</label><input id="t_mp3" value="${esc(t.audio_mp3_url)}" placeholder="קישור להורדת MP3"></div>
     <div class="f"><label>קובץ WAV · מאסטר</label><input id="t_wav" value="${esc(t.audio_wav_url)}" placeholder="קישור להורדת WAV"></div></div>
     <div class="hint">אלה הקבצים שמצורפים למייל לשדרנים (הם היחידים שמקבלים אותם — לא מופיע בעמוד הפומבי). לשיר חדש בלי קבצים, שלחי לי את ה-MP3/WAV ואעלה אותם.</div>
-    <div class="f" style="margin-top:14px"><label>עמוד קומוניקט (עיתונות)</label><input id="t_press" value="${esc(t.press_url)}" placeholder="https://music.shirahouminer.com/press/..."><div class="hint">אם מוגדר, כפתור "לעמוד השיר ולחומרים" במייל לשדרנים יוביל לכאן במקום לעמוד הבית.</div></div>
+    <div class="f" style="margin-top:14px"><label>עמוד קומוניקט (עיתונות)</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><button class="btn sm" onclick="openPress('${t.id}')">✎ עריכת עמוד הקומוניקט</button>${t.press_url?`<a class="btn ghost sm" href="${esc(t.press_url)}" target="_blank">צפייה בעמוד ↗</a>`:""}${t.press&&t.press.enabled?`<span class="chip2" style="font-size:10px">מופעל</span>`:`<span class="hint" style="display:inline">עדיין לא נוצר</span>`}</div>
+      <div class="hint">עמוד עיתונות מלא בתבנית הקבועה. כפתור "לעמוד השיר ולחומרים" במייל לשדרנים מוביל לכאן.</div></div>
+    <input type="hidden" id="t_press" value="${esc(t.press_url)}">
     <div style="display:flex;align-items:center;gap:12px;margin-top:14px"><span class="saved" id="sv-t"></span><button class="btn ghost sm danger" style="margin-inline-start:auto" onclick="delTrack('${t.id}','${esc(t.title)}')">מחיקת שיר</button></div>`);
   bindTrack();
 }
@@ -306,6 +309,62 @@ async function saveTrackNow(){
   const data={title:v("t_title"),status:v("t_status"),release_date:v("t_date")||null,lyrics:v("t_lyrics"),communique:v("t_comm"),spotify_url:v("t_spotify")||null,apple_url:v("t_apple")||null,youtube_url:v("t_youtube")||null,bandcamp_url:v("t_bandcamp")||null,presave_url:v("t_presave")||null,video_url:v("t_video")||null,airplay_log:v("t_airplay"),audio_mp3_url:v("t_mp3")||null,audio_wav_url:v("t_wav")||null,press_url:v("t_press")||null,published:document.getElementById("t_pub").checked};
   const credits=[...document.querySelectorAll("#creditsBox .credit-row")].map(r=>({role:r.querySelector(".cr-role").value,name:r.querySelector(".cr-name").value}));
   try{await api("saveTrack",{id:curTrack,data,credits});Object.assign(t,data);t.track_credits=credits.filter(c=>c.name||c.role).map((c,i)=>({role:c.role,name:c.name,id:"tmp"+i,sort_order:i}));saved("sv-t");renderWorks();renderHome();}catch(e){toast("שגיאה: "+e.message,1);}
+}
+let curPress=null;
+function openPress(id){
+  curPress=id;const t=DATA.tracks.find(x=>x.id===id);if(!t)return;
+  const pr=t.press||{};
+  const sec=(lbl)=>{const s=(pr.sections||[]).find(x=>x.label===lbl);return s?s.text:"";};
+  const soc=(lbl)=>{const s=(pr.socials||[]).find(x=>x[0]===lbl);return s?s[1]:"";};
+  const creditsTxt=(pr.credits||[]).map(c=>`${c[0]}: ${c[1]}`).join("\n");
+  const liveUrl="https://music.shirahouminer.com/press/"+t.slug;
+  const ml='font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--sage-ink);margin:16px 0 8px';
+  openSheet("עמוד קומוניקט · "+esc(t.title),`
+    <div class="f"><label class="chk"><input type="checkbox" id="p_enabled" ${pr.enabled?"checked":""}> העמוד פעיל ומוכן לפרסום</label></div>
+    <div class="f"><label>כותרת משנה</label><input id="p_subtitle" value="${esc(pr.subtitle)}" placeholder='סינגל שני מתוך אלבום הבכורה "..."'></div>
+    <div class="grid2"><div class="f"><label>תאריך (תווית עליונה)</label><input id="p_date" value="${esc(pr.date_label)}" placeholder="31 ביולי 2026"></div>
+    <div class="f"><label>שורת יציאה</label><input id="p_release" value="${esc(pr.release_line)}" placeholder="יוצא 31 ביולי · האלבום בסוף אוגוסט"></div></div>
+    <div class="f"><label>פתיח</label><textarea id="p_lead">${esc(pr.lead)}</textarea></div>
+    <div class="f"><label>ביו</label><textarea id="p_bio" class="lyr">${esc(pr.bio)}</textarea><div class="hint">אפשר שתי פסקאות, הפרידי בשורה ריקה.</div></div>
+    <div class="mono" style="${ml}">פסקאות התוכן (השאירי ריק כדי להסתיר סקשן)</div>
+    <div class="f"><label>על השיר</label><textarea id="p_song" class="lyr">${esc(sec("על השיר"))}</textarea></div>
+    <div class="f"><label>הסאונד</label><textarea id="p_sound" class="lyr">${esc(sec("הסאונד"))}</textarea></div>
+    <div class="f"><label>הקליפ</label><textarea id="p_clip">${esc(sec("הקליפ"))}</textarea></div>
+    <div class="f"><label>האלבום</label><textarea id="p_album">${esc(sec("האלבום"))}</textarea></div>
+    <div class="f"><label>ציטוט מודגש (אופציונלי)</label><input id="p_quote" value="${esc(pr.quote)}"></div>
+    <div class="f"><label>קרדיטים</label><textarea id="p_credits" class="lyr">${esc(creditsTxt)}</textarea><div class="hint">שורה לכל קרדיט, בפורמט: תפקיד: שם</div></div>
+    <div class="grid2"><div class="f"><label>איש קשר לעיתונות</label><input id="p_cname" value="${esc(pr.contact_name)}"></div>
+    <div class="f"><label>מייל איש קשר</label><input id="p_cemail" value="${esc(pr.contact_email)}"></div></div>
+    <div class="mono" style="${ml}">רשתות</div>
+    <div class="grid2"><div class="f"><label>Instagram</label><input id="p_ig" value="${esc(soc("Instagram"))}"></div>
+    <div class="f"><label>Spotify</label><input id="p_sp" value="${esc(soc("Spotify"))}"></div>
+    <div class="f"><label>Apple Music</label><input id="p_ap" value="${esc(soc("Apple Music"))}"></div>
+    <div class="f"><label>Bandcamp</label><input id="p_bc" value="${esc(soc("Bandcamp"))}"></div>
+    <div class="f"><label>YouTube</label><input id="p_yt" value="${esc(soc("YouTube"))}"></div></div>
+    <div class="f"><label>כותרת שיתוף (מה שמופיע בוואטסאפ)</label><input id="p_share" value="${esc(pr.share_title)}"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;position:sticky;bottom:-1px;background:var(--paper);padding:14px 0;border-top:1px solid var(--edge2)">
+      <span class="saved" id="sv-p"></span>
+      <button class="btn" onclick="publishPress('${id}')">🚀 פרסום לאתר</button>
+      <a class="btn ghost sm" href="${liveUrl}" target="_blank">צפייה בעמוד ↗</a>
+      <button class="btn ghost sm" style="margin-inline-start:auto" onclick="openTrack('${id}')">← חזרה לשיר</button>
+    </div>`);
+  ["p_subtitle","p_date","p_release","p_lead","p_bio","p_song","p_sound","p_clip","p_album","p_quote","p_credits","p_cname","p_cemail","p_ig","p_sp","p_ap","p_bc","p_yt","p_share"].forEach(fid=>{const el=document.getElementById(fid);el&&el.addEventListener("input",()=>autosave(()=>savePress(id),"p"));});
+  document.getElementById("p_enabled").addEventListener("change",()=>savePress(id));
+}
+function collectPress(){
+  const sections=[["על השיר","p_song"],["הסאונד","p_sound"],["הקליפ","p_clip"],["האלבום","p_album"]].map(([label,fid])=>({label,text:v(fid)})).filter(s=>s.text.trim());
+  const credits=v("p_credits").split(/\r?\n/).map(l=>{const m=l.match(/^(.*?)\s*[:：]\s*(.+)$/);return m?[m[1].trim(),m[2].trim()]:null;}).filter(Boolean);
+  const socials=[["Instagram","p_ig"],["Spotify","p_sp"],["Apple Music","p_ap"],["Bandcamp","p_bc"],["YouTube","p_yt"]].map(([label,fid])=>[label,v(fid).trim()]).filter(s=>s[1]);
+  return {enabled:document.getElementById("p_enabled").checked,kind:"song",subtitle:v("p_subtitle"),date_label:v("p_date"),release_line:v("p_release"),lead:v("p_lead"),bio:v("p_bio"),sections,quote:v("p_quote"),credits,contact_name:v("p_cname"),contact_email:v("p_cemail"),socials,share_title:v("p_share"),portrait:"shira-artist.jpg"};
+}
+async function savePress(id){
+  if(!document.getElementById("p_subtitle"))return;saving("sv-p");
+  const press=collectPress();const t=DATA.tracks.find(x=>x.id===id);
+  try{await api("saveTrack",{id,data:{press}});if(t)t.press=press;saved("sv-p");renderWorks();}catch(e){toast("שגיאה: "+e.message,1);}
+}
+async function publishPress(id){
+  await savePress(id);toast("מפרסם…");
+  try{const r=await api("publishPress",{id});const t=DATA.tracks.find(x=>x.id===id);if(t&&r&&r.url){t.press_url=r.url;}toast("פורסם ✓ העמוד עלה לאוויר");}catch(e){toast("שגיאה בפרסום: "+e.message,1);}
 }
 function delTrack(id,name){confirmBox("למחוק את השיר "+name+"?",async ok=>{if(!ok)return;try{await api("deleteTrack",{id});DATA.tracks=DATA.tracks.filter(x=>x.id!==id);closeSheet();renderWorks();renderHome();toast("נמחק ✓");}catch(e){toast("שגיאה",1);}});}
 const MEDIA_PUB="https://krttlnkystsykrvjfzwk.supabase.co/storage/v1/object/public/media";
