@@ -362,10 +362,15 @@ async function savePress(id){
   const press=collectPress();const t=DATA.tracks.find(x=>x.id===id);
   try{await api("saveTrack",{id,data:{press}});if(t)t.press=press;saved("sv-p");renderWorks();}catch(e){toast("שגיאה: "+e.message,1);}
 }
+const FN_PUB="https://krttlnkystsykrvjfzwk.supabase.co/functions/v1/publish";
+async function apiPublish(extra={}){
+  const r=await fetch(FN_PUB,{method:"POST",headers:{"Authorization":"Bearer "+KEY,"apikey":KEY,"Content-Type":"application/json"},body:JSON.stringify({password:PW,...extra})});
+  const j=await r.json().catch(()=>({error:"bad response"}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j;
+}
 async function publishPress(id){
-  await savePress(id);
-  try{const r=await api("publishPress",{id});const t=DATA.tracks.find(x=>x.id===id);if(t&&r&&r.url){t.press_url=r.url;}toast("פורסם ✓ העמוד עלה לאוויר");}
-  catch(e){toast("נשמר ✓ העמוד יעלה לאוויר בקרוב");}
+  await savePress(id);toast("מפרסם…");
+  try{const r=await apiPublish({id});const t=DATA.tracks.find(x=>x.id===id);if(t&&r&&r.url){t.press_url=r.url;}toast("פורסם ✓ העמוד עלה לאוויר");}
+  catch(e){toast("שגיאה בפרסום: "+e.message,1);}
 }
 function delTrack(id,name){confirmBox("למחוק את השיר "+name+"?",async ok=>{if(!ok)return;try{await api("deleteTrack",{id});DATA.tracks=DATA.tracks.filter(x=>x.id!==id);closeSheet();renderWorks();renderHome();toast("נמחק ✓");}catch(e){toast("שגיאה",1);}});}
 const MEDIA_PUB="https://krttlnkystsykrvjfzwk.supabase.co/storage/v1/object/public/media";
