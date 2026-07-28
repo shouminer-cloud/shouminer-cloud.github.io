@@ -485,8 +485,11 @@ async function parseStations(){
 
 /* ===== SEND ===== */
 const FN_SEND="https://krttlnkystsykrvjfzwk.supabase.co/functions/v1/send";
-let sendTrackId=null, TEMPLATES=[];
-async function loadTemplates(){try{const d=await apiSend("templates");TEMPLATES=d.templates||[];}catch(e){}renderSend();}
+let sendTrackId=null, TEMPLATES=[], CAMPAIGNS=[], SENDS=[];
+async function loadCampaigns(){try{const d=await apiSend("campaigns");CAMPAIGNS=d.campaigns||[];SENDS=d.sends||[];}catch(e){}}
+async function loadTemplates(){try{const d=await apiSend("templates");TEMPLATES=d.templates||[];}catch(e){}await loadCampaigns();renderSend();}
+function sentMap(trackId){const ci=new Set(CAMPAIGNS.filter(c=>c.track_id===trackId).map(c=>c.id));const m={};SENDS.forEach(s=>{if(ci.has(s.campaign_id)&&s.status==="sent"&&!m[s.contact_id])m[s.contact_id]=s.sent_at;});return m;}
+function fmtD(s){if(!s)return"";const d=new Date(s);return ("0"+d.getDate()).slice(-2)+"."+("0"+(d.getMonth()+1)).slice(-2);}
 function applyTemplate(id){const t=TEMPLATES.find(x=>x.id===id);if(!t)return;const s=document.getElementById("s_subject"),b=document.getElementById("s_body");if(s)s.value=t.subject||"";if(b)b.value=t.body||"";}
 async function saveTemplate(){const name=prompt("שם לתבנית (למשל: פנייה כללית):");if(!name)return;try{await apiSend("saveTemplate",{name,subject:v("s_subject"),body:v("s_body")});toast("תבנית נשמרה ✓");loadTemplates();}catch(e){toast("שגיאה: "+e.message,1);}}
 async function delTemplate(){const id=v("s_tmpl");if(!id){toast("בחרי תבנית למחיקה",1);return;}confirmBox("למחוק את התבנית?",async ok=>{if(!ok)return;try{await apiSend("deleteTemplate",{id});toast("נמחקה ✓");loadTemplates();}catch(e){toast("שגיאה",1);}});}
@@ -501,45 +504,57 @@ function renderSend(){
   const t=DATA.tracks.find(x=>x.id===sendTrackId);
   const email=DATA.contacts.filter(c=>c.channel_type==="email"&&(c.contact||"").includes("@"));
   const manual=DATA.contacts.filter(c=>c.channel_type!=="email");
-  const defBody=`שלום {שם התחנה},\nשמי שירה הומינר.\n\n{קומוניקט}\n\nאשמח שתקשיבו ותשקלו להשמיע.\nתודה,\nשירה`;
-  document.getElementById("sendSub").textContent=email.length+" תחנות במייל";
+  const tmpl=TEMPLATES.find(x=>/אישית/.test(x.name||""))||TEMPLATES[0];
+  const defBody=tmpl?tmpl.body:`היי {שם פרטי},\n\n{אישי}\n\nקוראים לי שירה הומינר.\n\nתודה,\nשירה`;
+  const defSubject=tmpl?tmpl.subject:("שירה הומינר · "+t.title);
+  const sent=sentMap(sendTrackId);
+  const nSent=email.filter(c=>sent[c.id]).length;
+  document.getElementById("sendSub").textContent=nSent+"/"+email.length+" נשלחו";
+  const groups={};email.forEach(c=>{const k=c.category||"ללא";(groups[k]=groups[k]||[]).push(c);});
   box.innerHTML=`
   <div class="card"><div class="ct">מה שולחים</div>
     <div class="f"><label>שיר</label><select id="s_track" onchange="sendTrackId=this.value;renderSend()">${DATA.tracks.map(x=>`<option value="${x.id}" ${x.id===t.id?"selected":""}>${esc(x.title)}</option>`).join("")}</select></div>
-    <div class="f"><label>תבנית מייל <span class="hint" style="display:inline">— שמרי נוסח לשימוש חוזר בשחרורים הבאים</span></label>
-      <div style="display:flex;gap:8px;flex-wrap:wrap"><select id="s_tmpl" onchange="applyTemplate(this.value)" style="flex:1;min-width:150px"><option value="">— בחרי תבנית שמורה —</option>${TEMPLATES.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select><button class="btn ghost sm" onclick="saveTemplate()">שמירה כתבנית</button><button class="btn ghost sm" onclick="delTemplate()">מחיקה</button></div></div>
-    <div class="f"><label>נושא המייל</label><input id="s_subject" value="שירה הומינר · ${esc(t.title)}"></div>
-    <div class="f"><label>גוף המייל <span class="hint" style="display:inline">— {שם פרטי}, {אישי} ו-{קומוניקט} מתמלאים אוטומטית לכל נמען ({אישי} = המשפט האישי שלו)</span></label><textarea id="s_body" style="min-height:180px">${esc(defBody)}</textarea></div>
-    <label class="chk" style="display:flex;align-items:center;gap:8px;margin:2px 0 12px;font-size:13.5px"><input type="checkbox" id="s_audio" checked style="width:16px;height:16px;accent-color:var(--sage)"> צירוף קבצי האודיו של השיר למייל${(t.audio_mp3_url||t.audio_wav_url)?` <span class="chip2" style="margin-inline-start:4px;font-size:10px">${[t.audio_mp3_url&&"MP3",t.audio_wav_url&&"WAV"].filter(Boolean).join(" · ")}</span>`:` <span class="hint" style="display:inline">— אין קבצים לשיר הזה (הוסיפי במסך "המוזיקה")</span>`}</label>
-    <button class="btn ghost sm" onclick="sendTest()">✉️ שליחת מייל בדיקה לעצמך</button>
+    <div class="f"><label>תבנית מייל</label><div style="display:flex;gap:8px;flex-wrap:wrap"><select id="s_tmpl" onchange="applyTemplate(this.value)" style="flex:1;min-width:150px"><option value="">— תבנית שמורה —</option>${TEMPLATES.map(x=>`<option value="${x.id}" ${tmpl&&x.id===tmpl.id?"selected":""}>${esc(x.name)}</option>`).join("")}</select><button class="btn ghost sm" onclick="saveTemplate()">שמירה</button><button class="btn ghost sm" onclick="delTemplate()">מחיקה</button></div></div>
+    <div class="f"><label>נושא</label><input id="s_subject" value="${esc(defSubject)}"></div>
+    <div class="f"><label>גוף המייל <span class="hint" style="display:inline">— {שם פרטי}, {אישי}, {קומוניקט} מתמלאים לכל נמען</span></label><textarea id="s_body" style="min-height:170px">${esc(defBody)}</textarea></div>
+    <label class="chk" style="display:flex;align-items:center;gap:8px;margin:2px 0 12px;font-size:13.5px"><input type="checkbox" id="s_audio" checked style="width:16px;height:16px;accent-color:var(--sage)"> צירוף קבצי האודיו${(t.audio_mp3_url||t.audio_wav_url)?"":` <span class="hint" style="display:inline">— אין קבצים לשיר</span>`}</label>
+    <button class="btn ghost sm" onclick="sendTest()">✉️ מייל בדיקה לעצמי</button>
   </div>
-  <div class="card"><div class="ct">נמענים · ${email.length} תחנות במייל</div>
-    <input class="search" id="rcptFilter" placeholder="סינון לפי שם או סגנון…" oninput="filterRcpt()" style="margin-bottom:10px">
-    <div style="margin-bottom:10px;font-size:12.5px"><a onclick="toggleAll(true)">בחרו את המוצגים</a> · <a onclick="toggleAll(false)">נקו</a></div>
-    ${(function(){const groups={};email.forEach(c=>{const k=c.category||"ללא";(groups[k]=groups[k]||[]).push(c);});const keys=Object.keys(groups);if(!keys.length)return'<div class="empty">אין תחנות עם מייל. הוסיפי במסך "תחנות הרדיו".</div>';return keys.map(cat=>`<div style="margin-bottom:12px"><div style="font-size:10.5px;letter-spacing:.14em;font-weight:700;color:var(--sage-ink);padding:6px 0 2px">${esc(cat)} · ${groups[cat].length}</div>${groups[cat].map(c=>`<label class="rcpt-row" data-s="${esc(((c.name||"")+" "+(c.style||"")+" "+cat).toLowerCase())}" style="display:flex;align-items:center;padding:5px 0;font-size:13px"><input type="checkbox" class="rcpt" value="${c.id}" checked style="width:16px;height:16px;accent-color:var(--sage);margin-inline-end:9px"> ${esc(c.name)}${(c.personal_note&&c.personal_note.trim())?` <span title="יש משפט אישי" style="color:var(--sage);font-size:10.5px;margin-inline-start:6px">✓ אישי</span>`:` <span style="color:var(--faint);font-size:10.5px;margin-inline-start:6px">·</span>`}<span class="mono" style="color:var(--faint);font-size:11px;margin-inline-start:auto;direction:ltr">${esc(c.contact)}</span></label>`).join("")}</div>`).join("");})()}
-    ${manual.length?`<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--edge2)"><div class="hint">${manual.length} תחנות ללא מייל (טופס/טלפון) — לפנייה ידנית: ${manual.map(c=>esc(c.name)).join(", ")}</div></div>`:""}
+  <div class="card"><div class="ct" style="display:flex;justify-content:space-between;align-items:center">שליחה אישית<span class="hint" style="display:inline">${nSent}/${email.length} נשלחו</span></div>
+    <input class="search" id="rcptFilter" placeholder="חיפוש שם / תחנה…" oninput="filterRcpt()" style="margin-bottom:12px">
+    ${Object.keys(groups).map(cat=>{const gc=groups[cat];const ns=gc.filter(c=>!sent[c.id]);
+      return `<div class="sgroup" style="margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0 7px;border-bottom:1px solid var(--edge)"><b style="font-size:11.5px;letter-spacing:.1em;color:var(--sage-ink)">${esc(cat)}</b><span class="hint" style="display:inline">${gc.length-ns.length}/${gc.length}</span>${ns.length?`<button class="btn ghost sm" style="margin-inline-start:auto" onclick="sendStation('${esc(cat).replace(/'/g,"\\'")}')">שלח לכל התחנה (${ns.length})</button>`:`<span style="margin-inline-start:auto;color:var(--sage);font-size:11px">הכל נשלח ✓</span>`}</div>
+        ${gc.map(c=>{const st=sent[c.id];
+          return `<div class="srow" data-s="${esc(((c.name||"")+" "+(c.style||"")+" "+cat).toLowerCase())}" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--edge2)">
+            <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">${esc(c.name)}${c.personal_note?"":` <span style="color:var(--faint);font-size:10px;font-weight:400">· ללא משפט</span>`}</div><div class="mono" style="color:var(--faint);font-size:11px;direction:ltr">${esc(c.contact)}</div></div>
+            ${st?`<span style="color:var(--sage);font-size:12px;white-space:nowrap">✓ ${fmtD(st)}</span><button class="btn ghost sm" onclick="previewContact('${c.id}')">👁</button>`:`<button class="btn ghost sm" onclick="previewContact('${c.id}')">תצוגה</button><button class="btn sm" onclick="sendOneContact('${c.id}')">שלח</button>`}
+          </div>`;}).join("")}
+      </div>`;}).join("")||'<div class="empty">אין אנשי קשר עם מייל.</div>'}
+    <div class="hint" style="margin-top:10px">שולח מ-shira@music.shirahouminer.com · תשובות מגיעות לג'ימייל שלך</div>
   </div>
-  <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-    <div class="hint">שולח מ: shira@music.shirahouminer.com · תשובות מגיעות לג'ימייל שלך</div>
-    <button class="btn" onclick="doSend()">שליחה לתחנות שנבחרו</button>
-  </div>
-  <div id="sendResult"></div>
-  <div style="margin-top:6px"><a onclick="renderTracking()" style="font-size:13px">↻ צפייה במעקב שליחות</a></div>`;
+  <div style="margin-top:8px"><a onclick="renderTracking()" style="font-size:13px">↻ מעקב שליחות מפורט</a></div>`;
 }
-function toggleAll(val){document.querySelectorAll(".rcpt-row").forEach(r=>{if(r.style.display!=="none")r.querySelector(".rcpt").checked=val;});}
-function filterRcpt(){const q=(v("rcptFilter")||"").trim().toLowerCase();document.querySelectorAll(".rcpt-row").forEach(r=>{r.style.display=(!q||(r.dataset.s||"").includes(q))?"flex":"none";});}
+function filterRcpt(){const q=(v("rcptFilter")||"").trim().toLowerCase();document.querySelectorAll(".srow").forEach(r=>{r.style.display=(!q||(r.dataset.s||"").includes(q))?"flex":"none";});}
+function fillPreview(body,c){return (body||"").replace(/\{שם פרטי\}|\{firstname\}/g,(c.name||"").split(" ")[0]).replace(/\{name\}|\{שם\}|\{שם התחנה\}/g,c.name||"").replace(/\{אישי\}|\{personal\}/g,c.personal_note||"").replace(/\{קומוניקט\}|\{communique\}/g,"[הקומוניקט של השיר הנבחר]").replace(/\n{3,}/g,"\n\n");}
+function previewContact(id){const c=DATA.contacts.find(x=>x.id===id);if(!c)return;const body=fillPreview(v("s_body"),c);
+  openSheet("תצוגה מקדימה · "+esc(c.name),`${c.info?`<div class="f"><label>מידע שיעזור לך</label><div style="font-size:13px;color:var(--ink-soft);background:var(--card);padding:12px;border:1px solid var(--edge)">${esc(c.info)}</div></div>`:""}
+    <div class="f"><label>נושא</label><div style="font-weight:700">${esc(v("s_subject"))}</div></div>
+    <div class="f"><label>המייל שיישלח</label><div style="white-space:pre-wrap;background:var(--card);padding:16px;border:1px solid var(--edge);font-size:14px;line-height:1.7">${esc(body)}</div></div>
+    <div style="display:flex;gap:10px;margin-top:14px"><button class="btn" onclick="closeSheet();sendOneContact('${id}')">שלח עכשיו</button><button class="btn ghost sm" style="margin-inline-start:auto" onclick="closeSheet()">סגור</button></div>`);}
 function attachAudio(){const e=document.getElementById("s_audio");return e?e.checked:true;}
 async function sendTest(){try{await apiSend("test",{trackId:sendTrackId,subject:v("s_subject"),body:v("s_body"),attachAudio:attachAudio()});toast("מייל בדיקה נשלח לג'ימייל שלך ✓");}catch(e){toast("שגיאה: "+e.message,1);}}
-async function doSend(){
-  const ids=[...document.querySelectorAll(".rcpt:checked")].map(c=>c.value);
-  if(!ids.length){toast("לא נבחרו תחנות",1);return;}
-  const t=DATA.tracks.find(x=>x.id===sendTrackId);
-  confirmBox('לשלוח את "'+t.title+'" ל-'+ids.length+" תחנות?",async ok=>{if(!ok)return;toast("שולח…");
-    try{const r=await apiSend("sendCampaign",{trackId:sendTrackId,subject:v("s_subject"),body:v("s_body"),contactIds:ids,attachAudio:attachAudio()});
-      document.getElementById("sendResult").innerHTML=`<div class="card"><div class="ct">נשלח</div><div style="font-size:15px">✅ ${r.sent} תחנות${r.skipped?` · ${r.skipped} דילגו (כבר קיבלו את השיר)`:""}${r.failed?` · <span style="color:var(--danger)">${r.failed} נכשלו</span>`:""}</div></div>`;
-      toast("נשלח ל-"+r.sent+" תחנות ✓");renderTracking();
-    }catch(e){toast("שגיאה: "+e.message,1);}});
-}
+async function sendOneContact(id){const c=DATA.contacts.find(x=>x.id===id);if(!c)return;
+  confirmBox("לשלוח ל"+c.name+" ("+c.contact+")?",async ok=>{if(!ok)return;toast("שולח…");
+    try{const r=await apiSend("sendCampaign",{trackId:sendTrackId,subject:v("s_subject"),body:v("s_body"),contactIds:[id],attachAudio:attachAudio()});await loadCampaigns();
+      if(r.sent)toast("נשלח ל"+c.name+" ✓");else if(r.skipped)toast(c.name+" כבר קיבל/ה את השיר",1);else toast("לא נשלח, בדקי את המייל",1);renderSend();
+    }catch(e){toast("שגיאה: "+e.message,1);}});}
+async function sendStation(cat){const sent=sentMap(sendTrackId);
+  const ids=DATA.contacts.filter(c=>c.channel_type==="email"&&(c.category||"ללא")===cat&&(c.contact||"").includes("@")&&!sent[c.id]).map(c=>c.id);
+  if(!ids.length){toast("הכל כבר נשלח בתחנה הזו");return;}
+  confirmBox("לשלוח ל-"+ids.length+" אנשי קשר בתחנת "+cat+"?",async ok=>{if(!ok)return;toast("שולח…");
+    try{const r=await apiSend("sendCampaign",{trackId:sendTrackId,subject:v("s_subject"),body:v("s_body"),contactIds:ids,attachAudio:attachAudio()});await loadCampaigns();toast("נשלח ל-"+r.sent+" אנשי קשר ✓");renderSend();
+    }catch(e){toast("שגיאה: "+e.message,1);}});}
 async function renderTracking(){
   try{const d=await apiSend("campaigns");
     const rows=(d.sends||[]).sort((a,b)=>(b.sent_at||"").localeCompare(a.sent_at||"")).map(s=>{
