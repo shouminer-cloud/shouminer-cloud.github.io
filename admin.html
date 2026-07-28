@@ -403,33 +403,51 @@ function delPhoto(id){confirmBox("למחוק את התמונה?",async ok=>{if(!
 
 /* CONTACTS */
 function renderContacts(){
-  document.getElementById("contactsSub").textContent=DATA.contacts.length+" תחנות";
+  document.getElementById("contactsSub").textContent=DATA.contacts.length+" אנשי קשר";
+  const cats=[...new Set(DATA.contacts.map(c=>c.category||"ללא"))];
   document.getElementById("contactsBody").innerHTML=`
-    <div class="toolbar"><input class="search" id="cSearch" placeholder="חיפוש תחנה…" value="${esc(cFilter.q)}">
+    <div class="toolbar" style="flex-wrap:wrap"><input class="search" id="cSearch" placeholder="חיפוש שם / מייל / סגנון…" value="${esc(cFilter.q)}">
       <span class="chip ${cFilter.cat==="all"?"on":""}" onclick="setCF('all')">הכל</span>
-      <span class="chip ${cFilter.cat==="national"?"on":""}" onclick="setCF('national')">ראשיות</span>
-      <span class="chip ${cFilter.cat==="regional"?"on":""}" onclick="setCF('regional')">אזוריות</span>
-      <span class="chip ${cFilter.cat==="student"?"on":""}" onclick="setCF('student')">סטודנטים</span>
-      <button class="btn sm" style="margin-inline-start:auto" onclick="openAddStation()">+ הוסף תחנה</button></div>
-    <table><thead><tr><th>תחנה</th><th>קטגוריה</th><th>ערוץ</th><th>כתובת / טופס</th><th>סגנון</th><th>אמינות</th><th></th></tr></thead><tbody id="cbody"></tbody></table>`;
+      ${cats.map(cat=>`<span class="chip ${cFilter.cat===cat?"on":""}" onclick="setCF('${esc(cat)}')">${esc(cat)}</span>`).join("")}
+      <button class="btn sm" style="margin-inline-start:auto" onclick="openAddStation()">+ הוסף</button></div>
+    <div id="cbody"></div>`;
   document.getElementById("cSearch").addEventListener("input",e=>{cFilter.q=e.target.value;renderRows();});renderRows();
 }
 function setCF(val){cFilter.cat=val;renderContacts();}
 function renderRows(){
-  const q=cFilter.q.trim();
-  const list=DATA.contacts.filter(c=>(cFilter.cat==="all"||c.category===cFilter.cat)&&(!q||(c.name||"").includes(q)||(c.contact||"").includes(q)));
+  const q=cFilter.q.trim().toLowerCase();
+  const list=DATA.contacts.filter(c=>(cFilter.cat==="all"||(c.category||"ללא")===cFilter.cat)&&(!q||((c.name||"")+" "+(c.contact||"")+" "+(c.style||"")).toLowerCase().includes(q)));
   const body=document.getElementById("cbody");
-  if(!list.length){body.innerHTML='<tr><td colspan="6"><div class="empty">אין תחנות שתואמות.</div></td></tr>';return;}
-  body.innerHTML=list.map(c=>{
-    const conf=c.confidence==="verified"?'<span class="pill v" onclick="cycleConf(\''+c.id+'\')">מאומת</span>':c.confidence==="secondary"?'<span class="pill s" onclick="cycleConf(\''+c.id+'\')">לאמת</span>':'<span class="pill n" onclick="cycleConf(\''+c.id+'\')">—</span>';
-    return `<tr data-id="${c.id}"><td style="min-width:110px"><input value="${esc(c.name)}" data-k="name"></td>
-      <td><select data-k="category"><option value="national" ${c.category==="national"?"selected":""}>ראשית</option><option value="regional" ${c.category==="regional"?"selected":""}>אזורית</option><option value="student" ${c.category==="student"?"selected":""}>סטודנטים</option></select></td>
-      <td><select data-k="channel_type"><option value="email" ${c.channel_type==="email"?"selected":""}>מייל</option><option value="form" ${c.channel_type==="form"?"selected":""}>טופס</option><option value="phone" ${c.channel_type==="phone"?"selected":""}>טלפון</option><option value="unknown" ${c.channel_type==="unknown"?"selected":""}>—</option></select></td>
-      <td style="min-width:140px"><input value="${esc(c.contact)}" data-k="contact" style="direction:ltr;text-align:right"></td>
-      <td><input value="${esc(c.style)}" data-k="style" placeholder="—" style="min-width:80px"></td>
-      <td>${conf}</td><td><button class="iconbtn" title="מחיקה" onclick="delRow('${c.id}','${esc(c.name)}')">🗑</button></td></tr>`;
-  }).join("");
-  document.querySelectorAll("#cbody tr").forEach(tr=>tr.querySelectorAll("[data-k]").forEach(el=>{el.addEventListener("change",()=>saveRow(tr.dataset.id));el.addEventListener("blur",()=>saveRow(tr.dataset.id));}));
+  if(!list.length){body.innerHTML='<div class="empty">אין אנשי קשר תואמים.</div>';return;}
+  const groups={};list.forEach(c=>{const k=c.category||"ללא";(groups[k]=groups[k]||[]).push(c);});
+  body.innerHTML=Object.keys(groups).map(cat=>`
+    <div style="margin:0 0 20px">
+      <div style="font-size:11px;letter-spacing:.16em;font-weight:700;color:var(--sage-ink);text-transform:uppercase;padding:8px 0 6px;border-bottom:1px solid var(--edge)">${esc(cat)} · ${groups[cat].length}</div>
+      ${groups[cat].map(c=>{const note=(c.personal_note||"").trim();
+        return `<div style="padding:11px 0;border-bottom:1px solid var(--edge2)">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><b style="font-size:14px">${esc(c.name)}</b>${c.style?`<span class="chip2" style="font-size:10px">${esc(c.style)}</span>`:""}<span class="mono" style="color:var(--faint);font-size:11px;direction:ltr">${esc(c.contact)}</span>
+            <span style="margin-inline-start:auto;display:flex;gap:6px"><button class="btn ghost sm" onclick="openEditContact('${c.id}')">ערוך</button><button class="iconbtn" onclick="delRow('${c.id}','${esc(c.name)}')">🗑</button></span></div>
+          <div style="font-size:12.5px;margin-top:5px;color:${note?"var(--ink-soft)":"var(--faint)"};font-style:italic">${note?"✎ "+esc(note):"אין משפט אישי"}</div>
+        </div>`;}).join("")}
+    </div>`).join("");
+}
+function openEditContact(id){
+  const c=DATA.contacts.find(x=>x.id===id);if(!c)return;
+  openSheet("עריכת איש קשר",`
+    <div class="grid2"><div class="f"><label>שם</label><input id="ec_name" value="${esc(c.name)}"></div>
+    <div class="f"><label>קטגוריה / תחנה</label><input id="ec_cat" value="${esc(c.category)}"></div></div>
+    <div class="grid2"><div class="f"><label>ערוץ</label><select id="ec_chan"><option value="email" ${c.channel_type==="email"?"selected":""}>מייל</option><option value="form" ${c.channel_type==="form"?"selected":""}>טופס</option><option value="phone" ${c.channel_type==="phone"?"selected":""}>טלפון</option><option value="unknown" ${c.channel_type==="unknown"?"selected":""}>—</option></select></div>
+    <div class="f"><label>סגנון / ז'אנר</label><input id="ec_style" value="${esc(c.style)}"></div></div>
+    <div class="f"><label>כתובת / מייל</label><input id="ec_contact" value="${esc(c.contact)}" style="direction:ltr;text-align:right"></div>
+    <div class="f"><label>תפקיד</label><input id="ec_role" value="${esc(c.role)}"></div>
+    <div class="f"><label>המשפט האישי (נכנס למייל במקום {אישי})</label><textarea id="ec_note" class="lyr">${esc(c.personal_note)}</textarea><div class="hint">מופיע בפתיחת המייל האישי לאיש הקשר הזה. אפשר לערוך חופשי.</div></div>
+    <div style="display:flex;gap:10px;margin-top:12px;align-items:center"><span class="saved" id="sv-ec"></span><button class="btn" onclick="saveEditContact('${id}')">שמירה</button><button class="btn ghost sm danger" style="margin-inline-start:auto" onclick="delRow('${id}','${esc(c.name)}')">מחיקה</button></div>`);
+}
+async function saveEditContact(id){
+  saving("sv-ec");
+  const data={name:v("ec_name"),category:v("ec_cat"),channel_type:v("ec_chan"),style:v("ec_style"),contact:v("ec_contact"),role:v("ec_role"),personal_note:v("ec_note")};
+  const c=DATA.contacts.find(x=>x.id===id);if(c)Object.assign(c,data);
+  try{await api("saveContact",{id,data});saved("sv-ec");renderContacts();}catch(e){toast("שגיאה: "+e.message,1);}
 }
 function rowData(tr){const d={};tr.querySelectorAll("[data-k]").forEach(el=>d[el.dataset.k]=el.value);return d;}
 async function saveRow(id){const tr=document.querySelector(`tr[data-id="${id}"]`);if(!tr)return;const data=rowData(tr);const c=DATA.contacts.find(x=>x.id===id);if(c)Object.assign(c,data);try{await api("saveContact",{id,data});}catch(e){toast("שגיאה בשמירה",1);}}
@@ -491,14 +509,14 @@ function renderSend(){
     <div class="f"><label>תבנית מייל <span class="hint" style="display:inline">— שמרי נוסח לשימוש חוזר בשחרורים הבאים</span></label>
       <div style="display:flex;gap:8px;flex-wrap:wrap"><select id="s_tmpl" onchange="applyTemplate(this.value)" style="flex:1;min-width:150px"><option value="">— בחרי תבנית שמורה —</option>${TEMPLATES.map(x=>`<option value="${x.id}">${esc(x.name)}</option>`).join("")}</select><button class="btn ghost sm" onclick="saveTemplate()">שמירה כתבנית</button><button class="btn ghost sm" onclick="delTemplate()">מחיקה</button></div></div>
     <div class="f"><label>נושא המייל</label><input id="s_subject" value="שירה הומינר · ${esc(t.title)}"></div>
-    <div class="f"><label>גוף המייל <span class="hint" style="display:inline">— {שם התחנה} ו-{קומוניקט} מתמלאים אוטומטית (הקומוניקט לפי השיר הנבחר)</span></label><textarea id="s_body" style="min-height:180px">${esc(defBody)}</textarea></div>
+    <div class="f"><label>גוף המייל <span class="hint" style="display:inline">— {שם פרטי}, {אישי} ו-{קומוניקט} מתמלאים אוטומטית לכל נמען ({אישי} = המשפט האישי שלו)</span></label><textarea id="s_body" style="min-height:180px">${esc(defBody)}</textarea></div>
     <label class="chk" style="display:flex;align-items:center;gap:8px;margin:2px 0 12px;font-size:13.5px"><input type="checkbox" id="s_audio" checked style="width:16px;height:16px;accent-color:var(--sage)"> צירוף קבצי האודיו של השיר למייל${(t.audio_mp3_url||t.audio_wav_url)?` <span class="chip2" style="margin-inline-start:4px;font-size:10px">${[t.audio_mp3_url&&"MP3",t.audio_wav_url&&"WAV"].filter(Boolean).join(" · ")}</span>`:` <span class="hint" style="display:inline">— אין קבצים לשיר הזה (הוסיפי במסך "המוזיקה")</span>`}</label>
     <button class="btn ghost sm" onclick="sendTest()">✉️ שליחת מייל בדיקה לעצמך</button>
   </div>
   <div class="card"><div class="ct">נמענים · ${email.length} תחנות במייל</div>
     <input class="search" id="rcptFilter" placeholder="סינון לפי שם או סגנון…" oninput="filterRcpt()" style="margin-bottom:10px">
     <div style="margin-bottom:10px;font-size:12.5px"><a onclick="toggleAll(true)">בחרו את המוצגים</a> · <a onclick="toggleAll(false)">נקו</a></div>
-    ${email.map(c=>`<label class="rcpt-row" data-s="${esc(((c.name||"")+" "+(c.style||"")).toLowerCase())}" style="display:flex;align-items:center;padding:6px 0;font-size:13.5px"><input type="checkbox" class="rcpt" value="${c.id}" checked style="width:16px;height:16px;accent-color:var(--sage);margin-inline-end:9px"> ${esc(c.name)}${c.style?` <span class="chip2" style="margin-inline-start:8px;font-size:10px">${esc(c.style)}</span>`:""} <span class="mono" style="color:var(--faint);font-size:11px;margin-inline-start:8px;direction:ltr">${esc(c.contact)}</span></label>`).join("")||'<div class="empty">אין תחנות עם מייל. הוסיפי במסך "תחנות הרדיו".</div>'}
+    ${(function(){const groups={};email.forEach(c=>{const k=c.category||"ללא";(groups[k]=groups[k]||[]).push(c);});const keys=Object.keys(groups);if(!keys.length)return'<div class="empty">אין תחנות עם מייל. הוסיפי במסך "תחנות הרדיו".</div>';return keys.map(cat=>`<div style="margin-bottom:12px"><div style="font-size:10.5px;letter-spacing:.14em;font-weight:700;color:var(--sage-ink);padding:6px 0 2px">${esc(cat)} · ${groups[cat].length}</div>${groups[cat].map(c=>`<label class="rcpt-row" data-s="${esc(((c.name||"")+" "+(c.style||"")+" "+cat).toLowerCase())}" style="display:flex;align-items:center;padding:5px 0;font-size:13px"><input type="checkbox" class="rcpt" value="${c.id}" checked style="width:16px;height:16px;accent-color:var(--sage);margin-inline-end:9px"> ${esc(c.name)}${(c.personal_note&&c.personal_note.trim())?` <span title="יש משפט אישי" style="color:var(--sage);font-size:10.5px;margin-inline-start:6px">✓ אישי</span>`:` <span style="color:var(--faint);font-size:10.5px;margin-inline-start:6px">·</span>`}<span class="mono" style="color:var(--faint);font-size:11px;margin-inline-start:auto;direction:ltr">${esc(c.contact)}</span></label>`).join("")}</div>`).join("");})()}
     ${manual.length?`<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--edge2)"><div class="hint">${manual.length} תחנות ללא מייל (טופס/טלפון) — לפנייה ידנית: ${manual.map(c=>esc(c.name)).join(", ")}</div></div>`:""}
   </div>
   <div class="card" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
