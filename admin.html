@@ -342,6 +342,8 @@ function openPress(id){
     <div class="f"><label>Bandcamp</label><input id="p_bc" value="${esc(soc("Bandcamp"))}"></div>
     <div class="f"><label>YouTube</label><input id="p_yt" value="${esc(soc("YouTube"))}"></div></div>
     <div class="f"><label>כותרת שיתוף (מה שמופיע בוואטסאפ)</label><input id="p_share" value="${esc(pr.share_title)}"></div>
+    <div class="mono" style="${ml};display:flex;justify-content:space-between;align-items:center">מעקב הורדות<a onclick="loadPressStats('${t.slug}')" style="cursor:pointer;text-transform:none;letter-spacing:0;color:var(--accent-ink)">↻ רענון</a></div>
+    <div id="pstats"><div class="hint">טוען…</div></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:14px;position:sticky;bottom:-1px;background:var(--paper);padding:14px 0;border-top:1px solid var(--edge2)">
       <span class="saved" id="sv-p"></span>
       <button class="btn" onclick="publishPress('${id}')">🚀 פרסום לאתר</button>
@@ -350,6 +352,27 @@ function openPress(id){
     </div>`);
   ["p_subtitle","p_date","p_release","p_lead","p_bio","p_song","p_sound","p_clip","p_album","p_quote","p_credits","p_cname","p_cemail","p_ig","p_sp","p_ap","p_bc","p_yt","p_share"].forEach(fid=>{const el=document.getElementById(fid);el&&el.addEventListener("input",()=>autosave(()=>savePress(id),"p"));});
   document.getElementById("p_enabled").addEventListener("change",()=>savePress(id));
+  loadPressStats(t.slug);
+}
+async function loadPressStats(slug){
+  const el=document.getElementById("pstats");if(!el)return;
+  el.innerHTML='<div class="hint">טוען נתוני הורדות…</div>';
+  try{
+    const d=await apiPublish({action:"downloads",slug});const rows=d.rows||[];
+    if(!rows.length){el.innerHTML='<div class="hint">עדיין אין הורדות. ברגע שיורידו קבצים מעמוד הקומוניקט, יופיע כאן מי, מה ומתי.</div>';return;}
+    const FILES={wav:"WAV",mp3:"MP3",cover:"עטיפה",artist:"תמונת אמן",zip:"חבילת ZIP"};
+    const perFile={},perWho={};
+    rows.forEach(r=>{perFile[r.file]=(perFile[r.file]||0)+1;const w=r.who||"אנונימי";perWho[w]=(perWho[w]||0)+1;});
+    const pad=n=>("0"+n).slice(-2);
+    const fmt=s=>{const d=new Date(s);return pad(d.getDate())+"."+pad(d.getMonth()+1)+" · "+pad(d.getHours())+":"+pad(d.getMinutes());};
+    let h='<div style="font-size:16px;font-weight:700;margin:2px 0 10px">סה"כ '+rows.length+' הורדות</div>';
+    h+='<div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:6px">'+Object.keys(FILES).filter(f=>perFile[f]).map(f=>'<span class="chip2" style="font-size:11px">'+FILES[f]+': '+perFile[f]+'</span>').join("")+'</div>';
+    h+='<div class="mono" style="font-size:10px;letter-spacing:.1em;color:var(--sage-ink);margin:14px 0 4px">מי הוריד</div>';
+    h+=Object.entries(perWho).sort((a,b)=>b[1]-a[1]).map(x=>'<div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--edge2);font-size:13.5px"><span>'+esc(x[0])+'</span><span style="font-weight:700">'+x[1]+'</span></div>').join("");
+    h+='<div class="mono" style="font-size:10px;letter-spacing:.1em;color:var(--sage-ink);margin:14px 0 4px">הורדות אחרונות</div>';
+    h+=rows.slice(0,50).map(r=>'<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--edge2);font-size:12.5px"><span>'+(FILES[r.file]||r.file)+' · '+esc(r.who||"אנונימי")+'</span><span class="mono" style="color:var(--faint);white-space:nowrap">'+fmt(r.created_at)+'</span></div>').join("");
+    el.innerHTML=h;
+  }catch(e){el.innerHTML='<div class="hint">שגיאה בטעינת הנתונים</div>';}
 }
 function collectPress(){
   const sections=[["על השיר","p_song"],["הסאונד","p_sound"],["הקליפ","p_clip"],["האלבום","p_album"]].map(([label,fid])=>({label,text:v(fid)})).filter(s=>s.text.trim());
