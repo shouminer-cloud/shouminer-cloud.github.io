@@ -142,6 +142,7 @@ body{font-size:15px;line-height:1.65}
       <button class="on" data-tab="works">המוזיקה</button>
       <button data-tab="contacts">תחנות הרדיו</button>
       <button data-tab="send">שליחה</button>
+      <button data-tab="tracking">מעקב שליחות</button>
     </nav>
     <div class="acct">שולח מ:<br><span class="dom">shira@music.shirahouminer.com</span><br><br><a id="logout">יציאה</a></div>
   </aside>
@@ -149,6 +150,7 @@ body{font-size:15px;line-height:1.65}
     <section class="tab on" id="tab-works"><div class="h"><h2>המוזיקה</h2><span class="sub" id="worksSub"></span></div><div id="worksBody"></div></section>
     <section class="tab" id="tab-contacts"><div class="h"><h2>תחנות הרדיו</h2><span class="sub" id="contactsSub"></span></div><div id="contactsBody"></div></section>
     <section class="tab" id="tab-send"><div class="h"><h2>שליחה</h2><span class="sub" id="sendSub"></span></div><div id="sendBody"></div></section>
+    <section class="tab" id="tab-tracking"><div class="h"><h2>מעקב שליחות</h2><span class="sub" id="trackingSub"></span></div><div id="trackingBody"></div></section>
   </main>
 </div>
 
@@ -192,6 +194,7 @@ async function boot(){
 document.querySelectorAll(".side nav button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll(".side nav button").forEach(x=>x.classList.remove("on"));b.classList.add("on");
   document.querySelectorAll(".tab").forEach(s=>s.classList.remove("on"));document.getElementById("tab-"+b.dataset.tab).classList.add("on");window.scrollTo({top:0,behavior:"smooth"});
+  if(b.dataset.tab==="tracking")renderTracking();
 });
 function goTab(t){document.querySelector('.side nav button[data-tab="'+t+'"]').click();}
 
@@ -533,7 +536,7 @@ function renderSend(){
       </div>`;}).join("")||'<div class="empty">אין אנשי קשר עם מייל.</div>'}
     <div class="hint" style="margin-top:10px">שולח מ-shira@music.shirahouminer.com · תשובות מגיעות לג'ימייל שלך</div>
   </div>
-  <div style="margin-top:8px"><a onclick="renderTracking()" style="font-size:13px">↻ מעקב שליחות מפורט</a></div>`;
+  <div style="margin-top:8px"><a onclick="goTab('tracking')" style="font-size:13px">↻ מעקב שליחות מפורט</a></div>`;
 }
 function filterRcpt(){const q=(v("rcptFilter")||"").trim().toLowerCase();document.querySelectorAll(".srow").forEach(r=>{r.style.display=(!q||(r.dataset.s||"").includes(q))?"flex":"none";});}
 function fillPreview(body,c){return (body||"").replace(/\{שם פרטי\}|\{firstname\}/g,(c.name||"").split(" ")[0]).replace(/\{name\}|\{שם\}|\{שם התחנה\}/g,c.name||"").replace(/\{אישי\}|\{personal\}/g,c.personal_note||"").replace(/\{קומוניקט\}|\{communique\}/g,"[הקומוניקט של השיר הנבחר]").replace(/\n{3,}/g,"\n\n");}
@@ -556,14 +559,25 @@ async function sendStation(cat){const sent=sentMap(sendTrackId);
     try{const r=await apiSend("sendCampaign",{trackId:sendTrackId,subject:v("s_subject"),body:v("s_body"),contactIds:ids,attachAudio:attachAudio()});await loadCampaigns();toast("נשלח ל-"+r.sent+" אנשי קשר ✓");renderSend();
     }catch(e){toast("שגיאה: "+e.message,1);}});}
 async function renderTracking(){
+  const body=document.getElementById("trackingBody");if(!body)return;
+  body.innerHTML='<div class="hint">טוען…</div>';
   try{const d=await apiSend("campaigns");
-    const rows=(d.sends||[]).sort((a,b)=>(b.sent_at||"").localeCompare(a.sent_at||"")).map(s=>{
-      const st=s.status==="opened"||s.opened_at?'<span class="pill v">נפתח</span>':s.status==="failed"?'<span class="pill s">נכשל</span>':'<span class="pill n">נשלח</span>';
-      const when=s.opened_at?new Date(s.opened_at).toLocaleString("he-IL"):s.sent_at?new Date(s.sent_at).toLocaleString("he-IL"):"—";
-      return `<tr><td>${esc(s.to_name||s.to_email)}</td><td>${st}</td><td class="mono" style="font-size:11px;color:var(--faint)">${when}</td></tr>`;}).join("");
-    const opened=(d.sends||[]).filter(s=>s.opened_at).length,sent=(d.sends||[]).length;
-    document.getElementById("sendResult").innerHTML=`<div class="card"><div class="ct">מעקב</div><div style="margin-bottom:12px;font-size:15px">${sent} נשלחו · <b style="color:var(--sage-ink)">${opened} פתחו</b></div><table><thead><tr><th>תחנה</th><th>סטטוס</th><th>עודכן</th></tr></thead><tbody>${rows||'<tr><td colspan="3" class="empty">עדיין לא נשלחו קמפיינים</td></tr>'}</tbody></table></div>`;
-  }catch(e){toast("שגיאה: "+e.message,1);}
+    const sends=(d.sends||[]).slice().sort((a,b)=>(b.sent_at||"").localeCompare(a.sent_at||""));
+    const sent=sends.filter(s=>s.status!=="failed"&&s.status!=="queued").length;
+    const opened=sends.filter(s=>s.opened_at).length;
+    const clicked=sends.filter(s=>s.clicked_at).length;
+    const failed=sends.filter(s=>s.status==="failed").length;
+    const st=document.getElementById("trackingSub");if(st)st.textContent=sends.length+" שליחות";
+    const catOf=cid=>{const c=DATA.contacts.find(x=>x.id===cid);return c&&c.category?c.category:"";};
+    const rows=sends.map(s=>{
+      const badge=s.clicked_at?'<span class="pill v">נכנס לעמוד</span>':s.opened_at?'<span class="pill v">נפתח</span>':s.status==="failed"?'<span class="pill s">נכשל</span>':'<span class="pill n">נשלח</span>';
+      const when=s.sent_at?new Date(s.sent_at).toLocaleString("he-IL",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"—";
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--edge2)"><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">${esc(s.to_name||s.to_email)}</div><div class="mono" style="font-size:11px;color:var(--faint);direction:ltr">${esc(s.to_email)}${catOf(s.contact_id)?" · "+esc(catOf(s.contact_id)):""}</div></div>${badge}<span class="mono" style="font-size:11px;color:var(--faint);white-space:nowrap">${when}</span></div>`;
+    }).join("");
+    body.innerHTML=`<div class="card"><div style="display:flex;gap:20px;flex-wrap:wrap;font-size:15px;margin-bottom:6px"><span><b>${sent}</b> נשלחו</span><span style="color:var(--sage-ink)"><b>${opened}</b> פתחו</span><span style="color:var(--accent-ink)"><b>${clicked}</b> נכנסו לעמוד</span>${failed?`<span style="color:var(--danger)"><b>${failed}</b> נכשלו</span>`:""}</div>
+      <div class="hint" style="margin-bottom:14px">כל השליחות, מהחדשה לישנה. "נפתח" = השדרן פתח את המייל · "נכנס לעמוד" = לחץ על הקישור לקומוניקט.</div>
+      ${rows||'<div class="empty">עדיין לא נשלחו מיילים. אחרי שתשלחי, הכל יופיע כאן.</div>'}</div>`;
+  }catch(e){body.innerHTML='<div class="empty">שגיאה בטעינת המעקב</div>';}
 }
 
 if(PW){boot().catch(()=>sessionStorage.removeItem("pw"));}
