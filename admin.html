@@ -530,8 +530,8 @@ function renderSend(){
         <div style="display:flex;align-items:center;gap:8px;padding:5px 0 7px;border-bottom:1px solid var(--edge)"><b style="font-size:11.5px;letter-spacing:.1em;color:var(--sage-ink)">${esc(cat)}</b><span class="hint" style="display:inline">${gc.length-ns.length}/${gc.length}</span>${ns.length?`<button class="btn ghost sm" style="margin-inline-start:auto" onclick="sendStation('${esc(cat).replace(/'/g,"\\'")}')">שלח לכל התחנה (${ns.length})</button>`:`<span style="margin-inline-start:auto;color:var(--sage);font-size:11px">הכל נשלח ✓</span>`}</div>
         ${gc.map(c=>{const st=sent[c.id];
           return `<div class="srow" data-s="${esc(((c.name||"")+" "+(c.style||"")+" "+cat).toLowerCase())}" style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--edge2)">
-            <div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">${esc(c.name)}${c.personal_note?"":` <span style="color:var(--faint);font-size:10px;font-weight:400">· ללא משפט</span>`}</div><div class="mono" style="color:var(--faint);font-size:11px;direction:ltr">${esc(c.contact)}</div></div>
-            ${st?`<span style="color:var(--sage);font-size:12px;white-space:nowrap">✓ ${fmtD(st)}</span><button class="btn ghost sm" onclick="previewContact('${c.id}')">👁</button>`:`<button class="btn ghost sm" onclick="previewContact('${c.id}')">תצוגה</button><button class="btn sm" onclick="sendOneContact('${c.id}')">שלח</button>`}
+            <div style="flex:1;min-width:0;cursor:pointer" onclick="openCompose('${c.id}')"><div style="font-size:13.5px;font-weight:700">${esc(c.name)}${c.personal_note?"":` <span style="color:var(--faint);font-size:10px;font-weight:400">· ללא משפט</span>`}</div><div class="mono" style="color:var(--faint);font-size:11px;direction:ltr">${esc(c.contact)}</div></div>
+            ${st?`<span style="color:var(--sage);font-size:12px;white-space:nowrap">✓ ${fmtD(st)}</span><button class="btn ghost sm" onclick="openCompose('${c.id}')">פתח</button>`:`<button class="btn sm" onclick="openCompose('${c.id}')">כתוב ושלח ←</button>`}
           </div>`;}).join("")}
       </div>`;}).join("")||'<div class="empty">אין אנשי קשר עם מייל.</div>'}
     <div class="hint" style="margin-top:10px">שולח מ-shira@music.shirahouminer.com · תשובות מגיעות לג'ימייל שלך</div>
@@ -539,12 +539,28 @@ function renderSend(){
   <div style="margin-top:8px"><a onclick="goTab('tracking')" style="font-size:13px">↻ מעקב שליחות מפורט</a></div>`;
 }
 function filterRcpt(){const q=(v("rcptFilter")||"").trim().toLowerCase();document.querySelectorAll(".srow").forEach(r=>{r.style.display=(!q||(r.dataset.s||"").includes(q))?"flex":"none";});}
-function fillPreview(body,c){return (body||"").replace(/\{שם פרטי\}|\{firstname\}/g,(c.name||"").split(" ")[0]).replace(/\{name\}|\{שם\}|\{שם התחנה\}/g,c.name||"").replace(/\{אישי\}|\{personal\}/g,c.personal_note||"").replace(/\{קומוניקט\}|\{communique\}/g,"[הקומוניקט של השיר הנבחר]").replace(/\n{3,}/g,"\n\n");}
-function previewContact(id){const c=DATA.contacts.find(x=>x.id===id);if(!c)return;const body=fillPreview(v("s_body"),c);
-  openSheet("תצוגה מקדימה · "+esc(c.name),`${c.info?`<div class="f"><label>מידע שיעזור לך</label><div style="font-size:13px;color:var(--ink-soft);background:var(--card);padding:12px;border:1px solid var(--edge)">${esc(c.info)}</div></div>`:""}
-    <div class="f"><label>נושא</label><div style="font-weight:700">${esc(v("s_subject"))}</div></div>
-    <div class="f"><label>המייל שיישלח</label><div style="white-space:pre-wrap;background:var(--card);padding:16px;border:1px solid var(--edge);font-size:14px;line-height:1.7">${esc(body)}</div></div>
-    <div style="display:flex;gap:10px;margin-top:14px"><button class="btn" onclick="closeSheet();sendOneContact('${id}')">שלח עכשיו</button><button class="btn ghost sm" style="margin-inline-start:auto" onclick="closeSheet()">סגור</button></div>`);}
+function fillCompose(body,c){return (body||"").replace(/\{שם פרטי\}|\{firstname\}/g,(c.name||"").split(" ")[0]).replace(/\{name\}|\{שם\}|\{שם התחנה\}/g,c.name||"").replace(/\{אישי\}|\{personal\}/g,c.personal_note||"").replace(/\n{3,}/g,"\n\n");}
+function openCompose(id){const c=DATA.contacts.find(x=>x.id===id);if(!c)return;
+  const st=sentMap(sendTrackId)[id];
+  const body=fillCompose(v("s_body"),c);
+  openSheet("כתיבת מייל · "+esc(c.name),`
+    ${c.info?`<div style="font-size:13px;color:var(--ink-soft);background:var(--card);padding:11px 13px;border:1px solid var(--edge);margin-bottom:12px">💡 ${esc(c.info)}</div>`:""}
+    <div class="f"><label>אל</label><div style="font-weight:700">${esc(c.name)} <span class="mono" style="font-size:12px;color:var(--faint);direction:ltr">${esc(c.contact)}</span></div></div>
+    <div class="f"><label>נושא</label><input id="cmp_subject" value="${esc(v("s_subject"))}"></div>
+    <div class="f"><label>גוף המייל <span class="hint" style="display:inline">— ערכי חופשי, זה בדיוק מה שיישלח</span></label><textarea id="cmp_body" style="min-height:300px">${esc(body)}</textarea></div>
+    <label class="chk" style="display:flex;align-items:center;gap:8px;margin:4px 0 6px;font-size:13px"><input type="checkbox" id="cmp_audio" ${attachAudio()?"checked":""} style="width:16px;height:16px;accent-color:var(--sage)"> צירוף קבצי אודיו למייל</label>
+    <div style="display:flex;gap:10px;align-items:center;margin-top:14px;position:sticky;bottom:-1px;background:var(--paper);padding:12px 0;border-top:1px solid var(--edge2)">${st?`<span style="color:var(--sage);font-size:12px">כבר נשלח ${fmtD(st)}</span>`:""}<button class="btn" onclick="sendComposed('${id}')">${st?"שלח שוב":"שלח מייל"}</button><button class="btn ghost sm" style="margin-inline-start:auto" onclick="closeSheet()">סגור</button></div>`);}
+async function sendComposed(id){const c=DATA.contacts.find(x=>x.id===id);if(!c)return;
+  const subject=v("cmp_subject"),body=v("cmp_body");
+  if(!body.trim()){toast("המייל ריק",1);return;}
+  const audio=(document.getElementById("cmp_audio")||{checked:true}).checked;
+  const already=!!sentMap(sendTrackId)[id];
+  toast("שולח…");
+  try{const r=await apiSend("sendCampaign",{trackId:sendTrackId,subject,body,contactIds:[id],attachAudio:audio,force:already});
+    await loadCampaigns();
+    if(r.sent)toast("נשלח ל"+c.name+" ✓");else if(r.skipped)toast(c.name+" כבר קיבל/ה, סמן 'שלח שוב'",1);else toast("לא נשלח, בדקי את המייל",1);
+    closeSheet();renderSend();
+  }catch(e){toast("שגיאה: "+e.message,1);}}
 function attachAudio(){const e=document.getElementById("s_audio");return e?e.checked:true;}
 async function sendTest(){try{await apiSend("test",{trackId:sendTrackId,subject:v("s_subject"),body:v("s_body"),attachAudio:attachAudio()});toast("מייל בדיקה נשלח לג'ימייל שלך ✓");}catch(e){toast("שגיאה: "+e.message,1);}}
 async function sendOneContact(id){const c=DATA.contacts.find(x=>x.id===id);if(!c)return;
