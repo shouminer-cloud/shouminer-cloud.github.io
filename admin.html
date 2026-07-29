@@ -574,24 +574,38 @@ async function sendStation(cat){const sent=sentMap(sendTrackId);
   confirmBox("לשלוח ל-"+ids.length+" אנשי קשר בתחנת "+cat+"?",async ok=>{if(!ok)return;toast("שולח…");
     try{const r=await apiSend("sendCampaign",{trackId:sendTrackId,subject:v("s_subject"),body:v("s_body"),contactIds:ids,attachAudio:attachAudio()});await loadCampaigns();toast("נשלח ל-"+r.sent+" אנשי קשר ✓");renderSend();
     }catch(e){toast("שגיאה: "+e.message,1);}});}
+function botUA(ua){return !ua||/bot|spider|proxy|scan|secur|proofpoint|mimecast|barracuda|forcepoint|symantec|cloudmark|monitor|preview|fetch|curl|python|wget|Go-http|okhttp|Java\//i.test(ua);}
+function classifySend(s){
+  if(s.status==="failed")return "failed";
+  if(!s.sent_at)return "queued";
+  const od=s.opened_at?(new Date(s.opened_at)-new Date(s.sent_at))/1000:null;
+  const cd=s.clicked_at?(new Date(s.clicked_at)-new Date(s.sent_at))/1000:null;
+  if(s.clicked_at&&cd>=180&&!botUA(s.click_ua))return "clicked";
+  if(s.opened_at&&od>=120&&!botUA(s.open_ua))return "opened";
+  if(s.opened_at||s.clicked_at)return "scanned";
+  return "sent";
+}
+function delayTxt(a,b){if(!a||!b)return"";const m=Math.round((new Date(a)-new Date(b))/60000);return m<1?"פחות מדקה":m<60?m+" דק'":Math.round(m/60)+" שעות";}
 async function renderTracking(){
   const body=document.getElementById("trackingBody");if(!body)return;
   body.innerHTML='<div class="hint">טוען…</div>';
   try{const d=await apiSend("campaigns");
     const sends=(d.sends||[]).slice().sort((a,b)=>(b.sent_at||"").localeCompare(a.sent_at||""));
+    const cls=sends.map(classifySend);
+    const cnt=x=>cls.filter(c=>c===x).length;
     const sent=sends.filter(s=>s.status!=="failed"&&s.status!=="queued").length;
-    const opened=sends.filter(s=>s.opened_at).length;
-    const clicked=sends.filter(s=>s.clicked_at).length;
-    const failed=sends.filter(s=>s.status==="failed").length;
+    const opened=cnt("opened")+cnt("clicked"),clicked=cnt("clicked"),scanned=cnt("scanned"),failed=cnt("failed");
     const st=document.getElementById("trackingSub");if(st)st.textContent=sends.length+" שליחות";
     const catOf=cid=>{const c=DATA.contacts.find(x=>x.id===cid);return c&&c.category?c.category:"";};
-    const rows=sends.map(s=>{
-      const badge=s.clicked_at?'<span class="pill v">נכנס לעמוד</span>':s.opened_at?'<span class="pill v">נפתח</span>':s.status==="failed"?'<span class="pill s">נכשל</span>':'<span class="pill n">נשלח</span>';
+    const rows=sends.map((s,i)=>{const k=cls[i];
+      const badge=k==="clicked"?'<span class="pill v">נכנס לעמוד</span>':k==="opened"?'<span class="pill v">נפתח</span>':k==="scanned"?'<span class="pill" style="background:var(--edge);color:var(--faint)">סריקה אוטומטית</span>':k==="failed"?'<span class="pill s">נכשל</span>':'<span class="pill n">נשלח</span>';
+      const detail=k==="scanned"?` <span class="hint" style="display:inline">(${delayTxt(s.opened_at||s.clicked_at,s.sent_at)} אחרי השליחה)</span>`:(k==="opened"||k==="clicked")?` <span class="hint" style="display:inline">(אחרי ${delayTxt(s.clicked_at||s.opened_at,s.sent_at)})</span>`:"";
       const when=s.sent_at?new Date(s.sent_at).toLocaleString("he-IL",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"—";
-      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--edge2)"><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">${esc(s.to_name||s.to_email)}</div><div class="mono" style="font-size:11px;color:var(--faint);direction:ltr">${esc(s.to_email)}${catOf(s.contact_id)?" · "+esc(catOf(s.contact_id)):""}</div></div>${badge}<span class="mono" style="font-size:11px;color:var(--faint);white-space:nowrap">${when}</span></div>`;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--edge2)"><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700">${esc(s.to_name||s.to_email)}</div><div class="mono" style="font-size:11px;color:var(--faint);direction:ltr">${esc(s.to_email)}${catOf(s.contact_id)?" · "+esc(catOf(s.contact_id)):""}</div></div><div style="text-align:left;white-space:nowrap">${badge}${detail}<div class="mono" style="font-size:11px;color:var(--faint);margin-top:2px">${when}</div></div></div>`;
     }).join("");
-    body.innerHTML=`<div class="card"><div style="display:flex;gap:20px;flex-wrap:wrap;font-size:15px;margin-bottom:6px"><span><b>${sent}</b> נשלחו</span><span style="color:var(--sage-ink)"><b>${opened}</b> פתחו</span><span style="color:var(--accent-ink)"><b>${clicked}</b> נכנסו לעמוד</span>${failed?`<span style="color:var(--danger)"><b>${failed}</b> נכשלו</span>`:""}</div>
-      <div class="hint" style="margin-bottom:14px">כל השליחות, מהחדשה לישנה. "נפתח" = השדרן פתח את המייל · "נכנס לעמוד" = לחץ על הקישור לקומוניקט.</div>
+    body.innerHTML=`<div class="card">
+      <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:15px;margin-bottom:8px"><span><b>${sent}</b> נשלחו</span><span style="color:var(--sage-ink)"><b>${opened}</b> נפתחו (אמיתי)</span><span style="color:var(--accent-ink)"><b>${clicked}</b> נכנסו לעמוד</span>${scanned?`<span style="color:var(--faint)"><b>${scanned}</b> סריקה אוטומטית</span>`:""}${failed?`<span style="color:var(--danger)"><b>${failed}</b> נכשלו</span>`:""}</div>
+      <div class="hint" style="margin-bottom:14px">פתיחות שנרשמות תוך שניות מהשליחה הן סורקי אבטחה אוטומטיים של התחנה, לא השדרן. המערכת מסננת אותן ולא סופרת אותן כפתיחה אמיתית. הסימנים הכי אמינים להתעניינות: מי <b>הוריד קבצים</b> (מעקב הורדות בעורך הקומוניקט) ומי <b>הגיב</b> לך במייל.</div>
       ${rows||'<div class="empty">עדיין לא נשלחו מיילים. אחרי שתשלחי, הכל יופיע כאן.</div>'}</div>`;
   }catch(e){body.innerHTML='<div class="empty">שגיאה בטעינת המעקב</div>';}
 }
